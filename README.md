@@ -1,8 +1,8 @@
 ROSA with API Gateway private integration
 
-Follow https://mobb.ninja/docs/rosa/sts/ for installing ROSA and creating a cluster-admin user.
+Follow https://mobb.ninja/docs/rosa/sts/ for guidance on installing ROSA.
 
-Create a new project for hosting the echoserver service:
+As the cluster admin create a new project for hosting the echoserver service:
 
 	oc new-project my-projects
 
@@ -109,6 +109,16 @@ Verify that internal access to the NLB works. Spin up a pod using a distribution
 	curl -Lk http://echo.example.com/echo  --resolve echo.example.com:80:${NLB_IP} --resolve echo.example.com:${NLB_IP}
 
 This time the x-forwarded-for and x-real-ip should match the IP address of the node that the pod is running on.
+
+To create an API Gateway private integration go to API Gateway from the AWS console and first create a VPC link. Select VPC link for HTTP APIs. Enter any name and select the VPC hosting the ROSA cluster. Select the subnet hosting the NLB (you should be able to figure this out based on the client_address returned in the output from the previous step). Select the security group that is contains the text openshift-operators/my-nginx-ingress-controller in the description.
+
+Whilst the VPC link is being created start building the API Gateway instance. Select HTTP API as the type and give it a name and go directly to review and create (other bits will be added post-buid).
+
+Under the develop drop-down select routes. For the method select ANY and change the path from / to /{proxy+}. After the route is created, select it and then the attach integration option. Select create and attach integration and the route displayed should be ANY /{proxy+}. For the integration target choose private resource. For the integration details select ALB/NLB and choose the ARN corresponding to the internal-facing NLB created earlier. Choose the TCP 443 listener and the VPC link created.
+
+
+
+
 
 
 
