@@ -101,7 +101,7 @@ Editing the Service resource fronting the NGINX Ingress Controller (service/my-n
     	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
 	  service.beta.kubernetes.io/aws-load-balancer-internal: "true"
 	
-To make this effective edit the the NGINX Ingress Controller and change the serviceType from NodePort to LoadBalancer. Verify an internal-facing NLB is created in AWS (check for scheme=internal in the description section). Edit the attributes of each listener to enable proxy protocol v2.
+To make this effective edit the the NGINX Ingress Controller and change the serviceType from NodePort to LoadBalancer. Verify an internal-facing NLB is created in AWS (check for scheme=internal in the description section). Edit the attributes of each listener to enable proxy protocol v2. 
 
 Verify access to the NLB works. Spin up a pod using a distribution that includes curl. And then use the IP address of the NLB to test. For example:
 
