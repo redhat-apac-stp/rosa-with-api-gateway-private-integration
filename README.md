@@ -114,11 +114,11 @@ To create an API Gateway private integration go to API Gateway from the AWS cons
 
 Whilst the VPC link is being created start building the API Gateway instance. Select HTTP API as the type and give it a name and go directly to review and create (other bits will be added post-buid).
 
-From the develop drop-down select routes. For the method select ANY and change the path from / to /{proxy+}. After the route is created, select it and then the attach integration option. Select create and attach integration and the route displayed should be ANY /{proxy+}. For the integration target choose private resource. For the integration details select ALB/NLB and choose the ARN corresponding to the internal-facing NLB created earlier. Choose the TCP 80 listener and the VPC link that was created in the previous step.
+From the develop drop-down select routes. For the method select ANY and change the path /{proxy+}. After the route is created, select it and then the attach integration option. Select create and attach integration and the route displayed should be ANY /{proxy+}. For the integration target choose private resource. For the integration details select ALB/NLB and choose the ARN corresponding to the internal-facing NLB created earlier. Choose TCP 80 for the listener and the name of the VPC link that was created in the previous step.
 
-From the integrations drop-down select manage integration. Select create parameter mapping and set mapping type to all incoming requests and parameter to modify to header.Host with an overwrite value of echo.example.com.
+From the integrations drop-down select manage integration. Select create parameter mapping and set the mapping type to all incoming requests and set parameter to modify to header.Host with an overwrite value of echo.example.com.
 
-Select the URL of the API and add /echo as an endpoint. You should see the echoserver respond. If not then edit the echoserver ingress resource and remove TLS entries for now (TBD).
+Select the URL of the API with /echo for the endpoint. You should see the echoserver respond. If not then edit the echoserver ingress resource and remove TLS entries for now (TBD).
 
 
 
