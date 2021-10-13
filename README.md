@@ -110,7 +110,7 @@ Verify that internal access to the NLB works. Spin up a pod using a distribution
 
 This time the x-forwarded-for and x-real-ip should match the IP address of the node that the pod is running on.
 
-To create an API Gateway private integration go to API Gateway from the AWS console and first create a VPC link. Select VPC link for HTTP APIs. Enter any name and select the VPC hosting the ROSA cluster. Select the subnet hosting the NLB (you should be able to figure this out based on the client_address returned in the output from the previous step). Do not select any security group.
+To create an API Gateway private integration go to API Gateway from the AWS console and first create a VPC link. Select VPC link for HTTP APIs. Enter any name and select the VPC hosting the ROSA cluster. Select all of the VPC subnets presented but do not select any security group.
 
 Whilst the VPC link is being created start building the API Gateway instance. Select HTTP API as the type and give it a name and go directly to review and create (other bits will be added post-buid).
 
