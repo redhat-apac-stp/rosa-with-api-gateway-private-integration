@@ -108,7 +108,7 @@ Verify access to the NLB works. Spin up a pod using a distribution that includes
 	oc run fedora -it --image=fedora
 	curl -Lk http://echo.example.com/echo  --resolve echo.example.com:80:10.0.222.250 --resolve echo.example.com:443:10.0.222.250
 
-This time the x-forwarded-for and x-real-ip should match the IP address of the node that the pod is running on.
+This time the x-forwarded-for and x-real-ip should match the IP address of the node that the pod is running on. 
 
 
 
