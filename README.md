@@ -2,8 +2,6 @@ ROSA with API Gateway private integration
 
 Follow https://mobb.ninja/docs/rosa/sts/ for installing ROSA and creating a cluster-admin user.
 
-Login to the cluster using the cluster-admin account.
-
 Create a new project for hosting the echoserver service:
 
 	oc new-project my-projects
@@ -24,5 +22,19 @@ Apply the anyuid SCC to the service account:
 
 	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid
   
-Install the NGINX Ingress Operator (0.4.0) from OperatorHub selecting all default options
+Install the NGINX Ingress Operator (v0.4.0) from OperatorHub selecting all default options.
+
+Create an instance of the NGINX Ingress Controller from Installed Operators selecting all default options (do not change ServiceType to LoadBalancer).
+
+Switch to the openshift-operators namespace:
+
+	oc project openshift-operators
+
+Verify all NGINX resources are healthy:
+
+	oc get all,nginxingresscontroller
+
+
+
+
 
