@@ -39,6 +39,7 @@ Create a ClusterIssuer resource in the openshift-operators namespace pointing to
 	kind: ClusterIssuer
 	metadata:
 	  name: letsencrypt-production
+	  namespace: openshift-operators
 	spec:
 	  acme:
 	    email: admin@example.com
@@ -52,12 +53,12 @@ Create a ClusterIssuer resource in the openshift-operators namespace pointing to
 	            class: nginx
 	        selector: {}
 
-Create a Certificate resource in the namespace of the target application:
+Create a Certificate resource in the namespace of the target application (e.g., my-projects):
 
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
 	metadata:
-	  name: knine-one-production
+	  name: www-example-com
 	  namespace: my-projects
 	spec:
 	  commonName: www.example.com
@@ -68,33 +69,62 @@ Create a Certificate resource in the namespace of the target application:
 	    name: letsencrypt-production
 	  secretName: example-com-tls
 
-Verify the readiness status of the certificate:
+Verify the readiness of the certificate:
 
 	oc get certificates -n my-projects
 
+Create a service account for the target application and add the anyuid SCC policy:
+
+	oc create sa sa-with-anyuid -n my-projects
+	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid -n my-projects
+
+Create the target application deployment:
+
+	apiVersion: apps/v1
+	kind: Deployment
+	metadata:
+	  name: echoserver
+	  namespace: my-projects
+	spec:
+	  selector:
+	    matchLabels:
+	      app: echoserver
+	  replicas: 1
+	  template:
+	    metadata:
+	      labels:
+	        app: echoserver
+	    spec:
+	      serviceAccount: sa-with-anyuid
+	      serviceAccountName: sa-with-anyuid
+	      containers:
+	      - image: gcr.io/google_containers/echoserver:1.4
+	        imagePullPolicy: Always
+	        name: echoserver
+	        ports:
+	        - containerPort: 8080
+
+Create the target application service:
+
+	apiVersion: v1
+	kind: Service
+	metadata:
+	  name: echoserver
+	  namespace: my-projects
+	spec:
+	  ports:
+	    - port: 80
+	      targetPort: 8080
+	      protocol: TCP
+	  type: ClusterIP
+	  selector:
+	    app: echoserver
+
+Verify the readiness of all the resources:
+
+	oc get all -n my-projects
+
 ***
-
-Follow https://mobb.ninja/docs/rosa/sts/ for guidance on installing ROSA.
-
-As the cluster admin create a new project for hosting the echoserver service:
-
-	oc new-project my-projects
-
-Generate a self-signed certificate and private key:
-
-	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout echo.example.com.key -out echo.example.com.crt -subj "/CN=echo.example.com"
-  
-Create the TLS secret:
-
-	oc create secret tls echo-secret --cert=hello.example.com.crt --key=hello.example.com.key
-
-Install the echoserver resources:
-
-	oc apply -f echoserver.yaml
-  
-Apply the anyuid SCC to the service account:
-
-	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid
   
 Install the NGINX Ingress Operator (v0.4.0) from OperatorHub selecting all default options. This should complete in about 2-3 minutes.
 
