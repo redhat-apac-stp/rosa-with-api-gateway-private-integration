@@ -12,24 +12,45 @@ https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-support
 
 For the purpose of this setup LetsEncrypt production certificates were used (staging certificates from LetsEncrypt are not a supported by AWS API Gateway).
 
-A public ROSA STS cluster was deployed as per the following instructions:
+A public ROSA STS cluster can be deployed as per the following instructions:
 
 https://mobb.ninja/docs/rosa/sts/
 
-NGINX Ingress Controllers was installed using the NGINX Ingress Operator (v0.4.0) via the OperatorHub web console in OpenShift as per the following instructions:
+NGINX Ingress Controllers can be installed by the NGINX Ingress Operator (v0.4.0) via the OperatorHub web console in OpenShift as per the following instructions:
 
 https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
-Cert Manager was installed using the cert-manager operator (v1.5.4) via the OperatorHub web console in OpenShift as per the following instructions:
+Cert Manager can be installed using by the Cert Manager Operator (v1.5.4) via the OperatorHub web console in OpenShift as per the following instructions:
 
 https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
-Both operators are created in the openshift-operators namespace.
+Both operators are created in the namespace openshift-operators.
 
-Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer created by the NGINX Ingress Controller for the purpose of facilitating the HTTP01 challenge issued by LetsEncrypt to validate domain ownership. For this setup www.example.com is used to illustrate the steps but this will need to be changed to reflect a registered domain name that is owned by your organisation.
+Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is used to illustrate the steps, but this will need to be changed to reflect a valid registered domain name.
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
 	host $elb
+
+Note that the load balancer type provisioned by the NGINX Ingress Controller is a CLB. This will subsequently be re-provisioned as a NLB for integration with API Gateway.
+
+Create a ClusterIssuer resource that represents the LetsEncrypt CA issuer (production):
+
+	apiVersion: cert-manager.io/v1
+	kind: ClusterIssuer
+	metadata:
+	  name: letsencrypt-production
+	spec:
+	  acme:
+	    email: admin@knine.one
+	    preferredChain: ''
+	    privateKeySecretRef:
+	      name: letsencrypt-production
+	    server: 'https://acme-v02.api.letsencrypt.org/directory'
+	    solvers:
+	      - http01:
+	          ingress:
+	            class: nginx
+	        selector: {}
 
 
 
