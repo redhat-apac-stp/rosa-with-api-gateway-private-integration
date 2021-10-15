@@ -1,4 +1,4 @@
-# ROSA with AWS API Gateway
+# ROSA integration with AWS API Gateway
 
 These instructions describe how to configure secure end-to-end connectivity from AWS API Gateway to a backend service accessed via an NGINX Ingress Controller using SSL/TLS certificates.
 
