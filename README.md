@@ -20,20 +20,35 @@ NGINX Ingress Controllers can be installed by the NGINX Ingress Operator (v0.4.0
 
 https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
+After installing the operator create an instance of the NGINX Ingress Controller fronted by a load balancer in a new namespace (e.g., my-nginx-ingress):
+
+	apiVersion: k8s.nginx.org/v1alpha1
+	kind: NginxIngressController
+	metadata:
+	  name: my-nginx-ingress-controller
+	  namespace: my-nginx-ingress
+	spec:
+  	  type: deployment
+	  nginxPlus: false
+	  image:
+	    repository: nginx/nginx-ingress
+	    tag: edge-ubi
+	    pullPolicy: Always
+	  replicas: 1
+	  serviceType: LoadBalancer
+
+Note that the load balancer type provisioned by the NGINX Ingress Controller defaults to CLB. Later, this will be switched to a NLB for integration with the AWS API Gateway.
+
 Cert Manager can be installed using by the Cert Manager Operator (v1.5.4) via the OperatorHub web console in OpenShift as per the following instructions:
 
 https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
-Both operators are created in the namespace openshift-operators.
-
-Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is the FQDN used for hosts in the TLS section of the ingress resource as well as the CommonName (CN) on the certificate. This will need to be changed to reflect a registered domain name that you own.
+Before creating issuers and certificates first provision an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This name is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is the FQDN to be used for hosts in the TLS section of the ingress resource created later, as well as the CommonName (CN) for the certificate subject. This name must be changed to a registered domain name that your organisation owns in order for any of this to work.
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
 	host $elb
 
-Note that the load balancer type provisioned by the NGINX Ingress Controller is a CLB. This will subsequently be re-provisioned as a NLB for integration with API Gateway.
-
-Create a ClusterIssuer resource in the openshift-operators namespace pointing to the production LetsEncrypt CA issuer:
+Create a ClusterIssuer resource in the openshift-operators namespace pointing to the LetsEncrypt CA issuer for production certficates:
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
@@ -53,7 +68,7 @@ Create a ClusterIssuer resource in the openshift-operators namespace pointing to
 	            class: nginx
 	        selector: {}
 
-Create a Certificate resource in the namespace of the target application (e.g., my-projects):
+Create a Certificate resource in the namespace of the application to be secured (e.g., my-projects):
 
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
@@ -145,7 +160,7 @@ Configure an ingress resource exposing an HTTP route to be managed by the NGINX 
 	        path: /
 	        pathType: Prefix
 
-Later this will be amended to include a TLS section for HTTPS routing.
+Later, the ingress resource will be amended to include a TLS section for HTTPS routing and referencing the TLS secret created earlier.
 
 ***
   
