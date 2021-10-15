@@ -1,22 +1,37 @@
 # ROSA with AWS API Gateway
 
-These notes describe how to configure secure end-to-end connectivity from the AWS API Gateway to a backend service securely exposed via an NGINX Ingress Controller using SSL/TLS certificates.
+These notes describe how to configure secure end-to-end connectivity from AWS API Gateway to a backend application service published via an NGINX Ingress Controller using SSL/TLS certificates.
 
-AWS API Gateway supports private integrations via VPC links that terminate on NLB/ALB endpoints - CLB endpoints are not supported for termination. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway.
+AWS API Gateway supports private integrations via a VPC link that terminates on NLB/ALB endpoints - CLB endpoints are not supported for termination. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway. The ROSA public roadmap indicates that support for NLB is planned and the need for deploying NGINX Ingress Controller to accomplish what is described below can subsequently be reviewed. 
+
+https://github.com/openshift-cs/managed-openshift/projects/2
 
 The instructions below first deploy a non-secured (HTTP) private integration to verify the overall setup and facilite troubleshooting. Subsequently this is upgraded to a secured (HTTPS) private integration using a public X509 certificate that must be issued by one of the Certificate Authorities that API Gateway trusts as per the following link:
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-For the purpose of this setup LetsEncrypt production certificates were used (staging certificates from LetsEncrypt are not a supported).
+For the purpose of this setup LetsEncrypt production certificates were used (staging certificates from LetsEncrypt are not a supported by AWS API Gateway).
 
-A ROSA public STS cluster was deployed as per the following link:
+A public ROSA STS cluster was deployed as per the following instructions:
 
 https://mobb.ninja/docs/rosa/sts/
 
-NGINX Ingress Controllers were deployed using an NGINX Operator (v0.4.0) as per the following link:
+NGINX Ingress Controllers was installed using the NGINX Ingress Operator (v0.4.0) via the OperatorHub web console in OpenShift as per the following instructions:
 
-https://github.com/nginxinc/nginx-ingress-operator
+https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
+
+Cert Manager was installed using the cert-manager operator (v1.5.4) via the OperatorHub web console in OpenShift as per the following instructions:
+
+https://cert-manager.io/docs/installation/operator-lifecycle-manager/
+
+Both operators are created in the openshift-operators namespace.
+
+Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer created by the NGINX Ingress Controller for the purpose of facilitating the HTTP01 challenge issued by LetsEncrypt to validate domain ownership. For this setup www.example.com is used to illustrate the steps but this will need to be changed to reflect a registered domain name that is owned by your organisation.
+
+	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | aws '{print $4}`
+	host $elb
+
+
 
 
 
