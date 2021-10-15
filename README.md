@@ -26,14 +26,14 @@ https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
 Both operators are created in the namespace openshift-operators.
 
-Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is used to illustrate the steps, but this will need to be changed to reflect a valid registered domain name.
+Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is used to illustrate the steps, but this will need to be changed to reflect a valid registered domain name owned by you.
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
 	host $elb
 
 Note that the load balancer type provisioned by the NGINX Ingress Controller is a CLB. This will subsequently be re-provisioned as a NLB for integration with API Gateway.
 
-Create a ClusterIssuer resource that represents the LetsEncrypt CA issuer (production):
+Create a ClusterIssuer resource in the openshift-operators namespace pointing to the production LetsEncrypt CA issuer:
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
@@ -41,7 +41,7 @@ Create a ClusterIssuer resource that represents the LetsEncrypt CA issuer (produ
 	  name: letsencrypt-production
 	spec:
 	  acme:
-	    email: admin@knine.one
+	    email: admin@example.com
 	    preferredChain: ''
 	    privateKeySecretRef:
 	      name: letsencrypt-production
@@ -52,10 +52,27 @@ Create a ClusterIssuer resource that represents the LetsEncrypt CA issuer (produ
 	            class: nginx
 	        selector: {}
 
+Create a Certificate resource in the namespace of the application to be secured:
 
+	apiVersion: cert-manager.io/v1
+	kind: Certificate
+	metadata:
+	  name: knine-one-production
+	  namespace: my-projects
+	spec:
+	  commonName: www.example.com
+	  dnsNames:
+	  - www.example.com
+	  issuerRef:
+	    kind: ClusterIssuer
+	    name: letsencrypt-production
+	  secretName: example-com-tls
 
+Verify the readiness status of the certificate:
 
+	oc get certificates -n my-projects
 
+***
 
 Follow https://mobb.ninja/docs/rosa/sts/ for guidance on installing ROSA.
 
