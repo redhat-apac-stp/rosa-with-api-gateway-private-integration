@@ -1,12 +1,25 @@
-# ROSA with AWS API Gateway private integration
+# ROSA with AWS API Gateway
 
-These notes describe how to configure secure end-to-end connectivity from the AWS API Gateway to a secured ingress end-point on ROSA that is managed by the NGINX Controller and exposed using a private internal AWS Network Loadbalancer (NLB). The default OpenShift Router currently uses a Classic Load Balancer which the AWS API Gateway does not support. Changing the network load balancer type may result in a non-supported configuration and lead to issues with cluster upgrades.
+These notes describe how to configure secure end-to-end connectivity from the AWS API Gateway to a backend service securely exposed via an NGINX Ingress Controller using SSL/TLS certificates.
 
-The instructions start with getting non-secured (HTTP) traffic flowing to verify the setup and facilite troubleshooting (be prepared to spin up tcpdump on the cluster nodes). This is then upgraded to a secured (HTTPS) flow using a publically issued X509 certificate for a registered domain name that AWS Route 53 resolves to the public IP address of the NLB fronting the NGINX Ingress Controller. Self-signed certificates or certificates will not work with API Gateway. The list of approved certificates that API Gateway supports can be found here:
+AWS API Gateway supports private integrations via VPC links that terminate on NLB/ALB endpoints - CLB endpoints are not supported for termination. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway.
+
+The instructions below first deploy a non-secured (HTTP) private integration to verify the overall setup and facilite troubleshooting. Subsequently this is upgraded to a secured (HTTPS) private integration using a public X509 certificate that must be issued by one of the Certificate Authorities that API Gateway trusts as per the following link:
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-LetsEncrypt public certificates were used for this setup after discovering that (1) AWS ACM will not allow export of a private key associated with a public certificate, and (2) using a private certificate generated using a private CA in ACM is not recognised by the API Gateway for the purpose of backend server communication - it seems possible to upload the private CA into the API Gateway truststore for frontend client-to-API Gateway mTLS, but that doesn't address the requirements here which is for securing the backend server channel.
+For the purpose of this setup LetsEncrypt production certificates were used (staging certificates from LetsEncrypt are not a supported).
+
+A ROSA public STS cluster was deployed as per the following link:
+
+https://mobb.ninja/docs/rosa/sts/
+
+NGINX Ingress Controllers were deployed using an NGINX Operator (v0.4.0) as per the following link:
+
+https://github.com/nginxinc/nginx-ingress-operator
+
+
+
 
 Follow https://mobb.ninja/docs/rosa/sts/ for guidance on installing ROSA.
 
