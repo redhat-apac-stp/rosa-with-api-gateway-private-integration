@@ -26,7 +26,7 @@ https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
 Both operators are created in the namespace openshift-operators.
 
-Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is used to illustrate the steps, but this will need to be changed to reflect a valid registered domain name owned by you.
+Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is the FQDN used for hosts in the TLS section of the ingress resource as well as the CommonName (CN) on the certificate. This will need to be changed to reflect a registered domain name that you own.
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
 	host $elb
@@ -73,12 +73,12 @@ Verify the readiness of the certificate:
 
 	oc get certificates -n my-projects
 
-Create a service account for the target application and add the anyuid SCC policy:
+Create a service account for the application and apply the anyuid SCC policy:
 
 	oc create sa sa-with-anyuid -n my-projects
 	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid -n my-projects
 
-Create the target application deployment:
+Create the application deployment:
 
 	apiVersion: apps/v1
 	kind: Deployment
@@ -104,7 +104,7 @@ Create the target application deployment:
 	        ports:
 	        - containerPort: 8080
 
-Create the target application service:
+Create the application service:
 
 	apiVersion: v1
 	kind: Service
@@ -123,6 +123,29 @@ Create the target application service:
 Verify the readiness of all resources:
 
 	oc get all -n my-projects
+
+Configure an ingress resource exposing an HTTP route to be managed by the NGINX Ingress Controller:
+
+	apiVersion: networking.k8s.io/v1
+	kind: Ingress
+	metadata:
+	  name: echoserver
+	  namespace: my-projects
+	spec:
+  	ingressClassName: nginx
+  	rules:
+  	- host: www.example.com
+	    http:
+	      paths:
+	      - backend:
+	          service:
+	            name: echoserver
+	            port:
+	              number: 80
+	        path: /
+	        pathType: Prefix
+
+Later this will be amended to include a TLS section for HTTPS routing.
 
 ***
   
