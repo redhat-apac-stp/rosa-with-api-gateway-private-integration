@@ -120,7 +120,7 @@ Create the target application service:
 	  selector:
 	    app: echoserver
 
-Verify the readiness of all the resources:
+Verify the readiness of all resources:
 
 	oc get all -n my-projects
 
