@@ -2,7 +2,7 @@
 
 These notes describe how to configure secure end-to-end connectivity from the AWS API Gateway to a secured ingress end-point on ROSA that is managed by the NGINX Controller and exposed using a private internal AWS Network Loadbalancer (NLB). The default OpenShift Router currently uses a Classic Load Balancer which the AWS API Gateway does not support. Changing the network load balancer type may result in a non-supported configuration and lead to issues with cluster upgrades.
 
-The instructions start with getting non-secured (HTTP) traffic flowing to verify the setup and facilite troubleshooting. This is then upgraded to a secured (HTTPS) flow using a publically issued X509 certificate for a registered domain name that AWS Route 53 resolves to the public IP address of the NLB fronting the NGINX Ingress Controller. Self-signed certificates or certificates will not work with API Gateway. The list of approved certificates that API Gateway supports can be found here:
+The instructions start with getting non-secured (HTTP) traffic flowing to verify the setup and facilite troubleshooting (be prepared to spin up tcpdump on the cluster nodes). This is then upgraded to a secured (HTTPS) flow using a publically issued X509 certificate for a registered domain name that AWS Route 53 resolves to the public IP address of the NLB fronting the NGINX Ingress Controller. Self-signed certificates or certificates will not work with API Gateway. The list of approved certificates that API Gateway supports can be found here:
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
