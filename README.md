@@ -1,6 +1,6 @@
 # ROSA integration with AWS API Gateway
 
-These instructions describe how to configure secure end-to-end connectivity from AWS API Gateway to a backend service accessed via an NGINX Ingress Controller using SSL/TLS certificates.
+These instructions describe how to configure end-to-end connectivity between an application hosted on ROSA and AWS API Gateway using private integrations for HTTP APIs and SSL/TLS certificates for protection.
 
 AWS API Gateway supports private integrations via a VPC link that terminates on NLB/ALB endpoints - CLB endpoints are not supported for termination. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway. The ROSA public roadmap indicates that support for NLB is planned and the need for deploying NGINX Ingress Controller to accomplish what is described below can subsequently be reviewed. 
 
