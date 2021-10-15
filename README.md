@@ -28,7 +28,7 @@ Both operators are created in the openshift-operators namespace.
 
 Create an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer created by the NGINX Ingress Controller for the purpose of facilitating the HTTP01 challenge issued by LetsEncrypt to validate domain ownership. For this setup www.example.com is used to illustrate the steps but this will need to be changed to reflect a registered domain name that is owned by your organisation.
 
-	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | aws '{print $4}`
+	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
 	host $elb
 
 
