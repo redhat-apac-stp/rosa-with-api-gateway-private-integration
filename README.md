@@ -154,16 +154,13 @@ Confirm all resources are ready and that the NGINX Ingress Controller is managin
 Test connectivity to the internal-facing NLB from a node in the VPC hosting the ROSA cluster:
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}'`
-	elb_ip=`host $elb | awk '{print$4}'`
+	host $elb | awk '{print$4}'`
 
-	oc debug node 
+	oc debug node/<any node> -- curl <elb ip> -H 'echo.example.com'
+	
+The echoserver output displays the real IP address of the caller (in the x-forwarded-for field) as well as the IP address of the NGINX Ingress Controller pod (client_address) which is the client calling the echoserver service.
 
-
-are created by enabling proxy protocol version 2 support from the AWS web console. 
-
-
-
-change the serviceType specificaiton from NodePort to LoadBalancer. Also add the following lines to the specificatoin section:
+***
 
 
  
