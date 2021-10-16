@@ -4,23 +4,15 @@ These instructions describe how to configure end-to-end connectivity between an 
 
 AWS API Gateway supports private integrations via a VPC link that terminates on NLB/ALB endpoints - CLB endpoints are not supported for termination of a VPC link. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway. Furthermore the ingress controller must support proxy protocol version 2 to send origin source and destination address information.  
 
-https://github.com/openshift-cs/managed-openshift/projects/2
+The instructions below first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured (SSL/TLS) configuration using a X509 certificate that must be issued by one of the trusted Certificate Authorities as per the following link: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-The instructions below first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured (SSL/TLS) configuration using a X509 certificate that must be issued by one of the trusted Certificate Authorities as per the following link:
-
-https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
-
-For the purpose of this setup LetsEncrypt is the chosen issuer. The wildcard domain name to be used for the certificate CommonName (CN) is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
+For the purpose of this setup LetsEncrypt is the chosen certificate issuer. The wildcard domain name to be used for the certificate CommonName (CN) is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
 
 ***
 
-A public ROSA STS cluster can be deployed as per the following instructions:
+A public ROSA STS cluster can be deployed as per the following instructions: https://mobb.ninja/docs/rosa/sts/
 
-https://mobb.ninja/docs/rosa/sts/
-
-Install the NGINX Ingress Operator (v0.4.0) via the OperatorHub in the OpenShift web console selecting all defaults. For more details please consult the following link:
-
-https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
+Install NGINX Ingress Operator (v0.4.0) via the OperatorHub from the OpenShift web console. Do not change the defaults. For more details please consult the following link: https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
 After installing the NGINX Ingress Operator create a minimal configuration for a new NGINX Ingress Controller instance in the openshift-operators namespace:
 
@@ -180,64 +172,59 @@ Push the create button and that completes the setup.
 
 Click on the API URL for the $default stage. It should look something like this: https://0fj4opay08.execute-api.ap-southeast-1.amazonaws.com.
 
-The echoserver response in the web browser indicates that the real IP address of the user-agent is now contained in the forwarded field of the header and the x-forwarded-for field contains the IP address of the ENI for the API Gateway that was created for the VPC link terminating in the ROSA VPC. The client_address field should be the same as before.
+The echoserver response in the web browser indicates that the real IP address of the user-agent is now contained in the forwarded field of the header and the x-forwarded-for field contains the IP address of the ENI for the AWS API Gateway that was created for the VPC link terminating in the ROSA VPC. The client_address field should be the same as before.
 
 
 ***
 
+The next steps upgrade the unencrypted connection between the AWS API Gateway and ROSA with SSL/TLS.
 
- 
+Install Cert Manager Operator (v0.15.3) via the OperatorHub from the OpenShift web console. Do not change the defaults. For more details please consult the following link: https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
-Note that the load balancer type provisioned by the NGINX Ingress Controller defaults to CLB. Later, this will be switched to a NLB for integration with the AWS API Gateway.
+These steps assume that a registered domain name which is under your control has been provisioned in AWS Route 53 as described above. Because a DNS-01 challenge is required to validate wildcard certificates this will require access to AWS credentials to modify DNS resource records. Choose an IAM user that has the necessary permissions and then store their access key as a secret:
 
-Cert Manager can be installed using by the Cert Manager Operator (v1.5.4) via the OperatorHub web console in OpenShift as per the following instructions:
+	oc create secret generic route53-secret --from-literal=aws-secret-access-key=<your AWS access key> -n openshift-operators
 
-https://cert-manager.io/docs/installation/operator-lifecycle-manager/
-
-Before creating issuers and certificates first provision an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This name is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is the FQDN to be used for hosts in the TLS section of the ingress resource created later, as well as the CommonName (CN) for the certificate subject. This name must be changed to a registered domain name that your organisation owns in order for any of this to work.
-
-	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
-	host $elb | awk '{print $4}'`
-	oc debug node/<select any node hostname> -- curl <nlb ip address> -H 'echo.example.com'
-
-Because proxy protocol is enabled the echoserver application displays the real IP address of the caller (in the field x-forwarded-for of the header) along with the IP address of the NGINX Ingress Controller pod in the client_address field.
-
-***
-
-Create a ClusterIssuer resource in the openshift-operators namespace pointing to the LetsEncrypt CA issuer for production certficates:
+Create a ClusterIssuer resource in the openshift-operators that points to the ACME v2 production endpoint using a DNS-01 to validate wildcard identifiers:
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
 	metadata:
-	  name: letsencrypt-production
+	  name: letsencrypt
 	  namespace: openshift-operators
 	spec:
 	  acme:
 	    email: admin@example.com
-	    preferredChain: ''
 	    privateKeySecretRef:
-	      name: letsencrypt-production
-	    server: 'https://acme-v02.api.letsencrypt.org/directory'
+	      name: letsencrypt
+	    server: "https://acme-v02.api.letsencrypt.org/directory"
 	    solvers:
-	      - http01:
-	          ingress:
-	            class: nginx
-	        selector: {}
-
-Create a Certificate resource in the namespace of the application to be secured (e.g., my-projects):
+	      - selector:
+	          dnsZones:
+		    - "example.com"
+	        dns01:
+	          route53:
+		    region: ap-southeast-1
+		    hostedZoneID: <hosted zone id for your domain>
+		    accessKeyID: <your AWS access key id>
+		    secretAccessKeySecretRef:
+		      name: route53-secret
+		      key: aws-secret-access-key
+			        
+Create a certificate in the namespace of the application to be protected.
 
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
 	metadata:
-	  name: www-example-com
-	  namespace: my-projects
+	  name: le-cert
+	  namespace: my-project
 	spec:
-	  commonName: www.example.com
+	  commonName: "*.example.com"
 	  dnsNames:
-	  - www.example.com
+	  - "*.example.com"
 	  issuerRef:
 	    kind: ClusterIssuer
-	    name: letsencrypt-production
+	    name: letsencrypt
 	  secretName: example-com-tls
 
 Verify the readiness of the certificate:
