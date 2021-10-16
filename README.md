@@ -160,6 +160,18 @@ Test connectivity to the internal-facing NLB from a node in the VPC hosting the 
 	
 The echoserver output displays the real IP address of the user-agent (in the x-forwarded-for field) as well as the IP address of the NGINX Ingress Controller pod (client_address field) requesting the echoserver host URI.
 
+The next steps link the AWS API Gateway to the echoserver host URI via a private HTTP API integration over TCP port 80. Subsequently this will be upgraded to SSL/TLS over TCP port 443.
+
+From the AWS web console select the AWS API Gateway service and first create a VPC link to the ROSA VPC. Choose the option to create a VPC link for HTTP APIs and give it a name and select the ROSA VPC. Select all subnets but not any of the security groups before pressing the Create button.
+
+Whilst the VPC link is being provisioned start creating the HTTP API type and give it a name before pressing the Review and Create button (skip all of the other steps).
+
+From the develop drow-down that appears select routes and create a route. Set the method to ANY and path to /{proxy+}.
+
+header.Host
+Overwrite
+echo.example.com
+
 ***
 
 
