@@ -166,11 +166,22 @@ From the AWS web console select the AWS API Gateway service and first create a V
 
 Whilst the VPC link is being provisioned start creating the HTTP API type and give it a name before pressing the Review and Create button (skip all of the other steps).
 
-From the develop drow-down that appears select routes and create a route. Set the method to ANY and path to /{proxy+}.
+From the develop drop down that appears select routes and create a route. Set the method to ANY and route to /{proxy+}.
 
-header.Host
-Overwrite
-echo.example.com
+On the next screen that appears select the ANY method under the /{proxy+} route and attach an integration to this route. Select create and attach an integration. Set the integration target to private resource. Select manual for the method and choose ALB/NLB for the target service. Select the correct NLB (echo $elb). Select only the TCP:80 listener. Do not touch any of the advanced settings. Select the VPC link that should have completed provisioning by now.
+
+From the integrations drop down select manage integration and create a new parameter mapping. Set the mapping type to all incoming requests and add a new mapping. The details of the mapping are as follows:
+
+	parameter to modify = header.Host
+	modification type = Overwrite
+	value = echo.example.com
+
+Push the Create button and that completes the setup. 
+
+Select the API URL for the $default stage. It should look something like this: https://0fj4opay08.execute-api.ap-southeast-1.amazonaws.com and paste it into a browser.
+
+The echoserver response indicates that the real IP address of the user-agent is now in the forwarded field of the header and the x-forwarded-for contains the IP address of the ENI for the API Gateway that the VPC link created. The client_address field should be the same as before.
+
 
 ***
 
