@@ -10,7 +10,7 @@ The instructions below first deploy a non-secured (HTTP) setup to verify connect
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-For the purpose of this setup LetsEncrypt is the chosen issuer. The wildcard domain name to be secured is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
+For the purpose of this setup LetsEncrypt is the chosen issuer. The wildcard domain name to be used for the certificate CommonName (CN) is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
 
 ***
 
@@ -18,7 +18,7 @@ A public ROSA STS cluster can be deployed as per the following instructions:
 
 https://mobb.ninja/docs/rosa/sts/
 
-Install the NGINX Ingress Operator (v0.4.0) via the OperatorHub in the OpenShift web console as per the following instructions:
+Install the NGINX Ingress Operator (v0.4.0) via the OperatorHub in the OpenShift web console selecting all defaults. For more details please consult the following link:
 
 https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
@@ -68,7 +68,7 @@ Modify the nginxingresscontroller/my-nginx-ingress-controller resource and chang
 	    real-ip-header: "proxy_protocol"
 	    set-real-ip-from: "0.0.0.0/0"	  
 
-Modify the NLB that is created for service/my-nginx-ingress-controller. Enable proxy protocol version 2 for the two listeners that are created (TCP:80 and TCP:443) from the AWS web console.
+Modify the internal-facing NLB that is created for service/my-nginx-ingress-controller. Enable proxy protocol version 2 for the two listeners configured on the NLB (TCP:80 and TCP:443) from the AWS web console.
 
 Deploy the echoserver application into a new namespace.
 
