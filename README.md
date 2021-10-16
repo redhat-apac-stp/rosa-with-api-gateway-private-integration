@@ -22,7 +22,7 @@ Install the NGINX Ingress Operator (v0.4.0) via the OperatorHub in the OpenShift
 
 https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
-After installing the operator create a minimal configuration for a new NGINX Ingress Controller instance in the openshift-operators namespace:
+After installing the NGINX Ingress Operator create a minimal configuration for a new NGINX Ingress Controller instance in the openshift-operators namespace:
 
 	apiVersion: k8s.nginx.org/v1alpha1
 	kind: NginxIngressController
@@ -44,7 +44,7 @@ Modify the service/my-nginx-ingress-controller that is created and add the follo
 	annotations:
 	  service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
 	  service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-	  service.beta.kubernetes.io/aws-load-balancer-backend-internal: "true"
+	  service.beta.kubernetes.io/aws-load-balancer-internal: "true"
 	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
 
 Modify the nginxingresscontroller/my-nginx-ingress-controller resource and change the serviceType and add a configMapData stanza:
@@ -146,9 +146,17 @@ Configure an ingress resource exposing an HTTP route with a FQDN of echo.example
 	        path: /
 	        pathType: Prefix
 
+Confirm all resources are ready and that the NGINX Ingress Controller is managing the ingress resource:
 
+	oc get all -n my-project
+	oc describe ingress/echoserver -n my-project
 
+Test connectivity to the internal-facing NLB from a node in the VPC hosting the ROSA cluster:
 
+	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}'`
+	elb_ip=`host $elb | awk '{print$4}'`
+
+	oc debug node 
 
 
 are created by enabling proxy protocol version 2 support from the AWS web console. 
@@ -169,7 +177,12 @@ https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 Before creating issuers and certificates first provision an "A" record in AWS Route 53 pointing to the IP address of the Internet-facing load balancer provisioned by the NGINX Ingress Controller. This name is used by LetsEncrypt when issuing the HTTP01 challenge to validate domain ownership. For this setup www.example.com is the FQDN to be used for hosts in the TLS section of the ingress resource created later, as well as the CommonName (CN) for the certificate subject. This name must be changed to a registered domain name that your organisation owns in order for any of this to work.
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}`
-	host $elb
+	host $elb | awk '{print $4}'`
+	oc debug node/<select any node hostname> -- curl <nlb ip address> -H 'echo.example.com'
+
+Because proxy protocol is enabled the echoserver application displays the real IP address of the caller (in the field x-forwarded-for of the header) along with the IP address of the NGINX Ingress Controller pod in the client_address field.
+
+***
 
 Create a ClusterIssuer resource in the openshift-operators namespace pointing to the LetsEncrypt CA issuer for production certficates:
 
