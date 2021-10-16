@@ -172,56 +172,51 @@ Push the create button and that completes the setup.
 
 Click on the API URL for the $default stage. It should look something like this: https://0fj4opay08.execute-api.ap-southeast-1.amazonaws.com.
 
-The echoserver response in the web browser indicates that the real IP address of the user-agent is now contained in the forwarded field of the header and the x-forwarded-for field contains the IP address of the ENI for the AWS API Gateway that was created for the VPC link terminating in the ROSA VPC. The client_address field should be the same as before.
-
+The echoserver response in the web browser indicates that the real IP address of the user-agent is now contained in the forwarded field of the header and the x-forwarded-for field contains the IP address of the ENI for the AWS API Gateway that was created for the VPC link terminating in the ROSA VPC. The client_address field should be the same as before. Also note that the field x-forwarded-proto should be http and the field x-forwarded-port should be 80.
 
 ***
 
 The next steps upgrade the unencrypted connection between the AWS API Gateway and ROSA with SSL/TLS.
 
-Install Cert Manager Operator (v0.15.3) via the OperatorHub from the OpenShift web console. Do not change the defaults. For more details please consult the following link: https://cert-manager.io/docs/installation/operator-lifecycle-manager/
+Install Cert Manager Operator (v1.5.4) via the OperatorHub from the OpenShift web console. Do not change the defaults. For more details please consult the following link: https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
 These steps assume that a registered domain name which is under your control has been provisioned in AWS Route 53 as described above. Because a DNS-01 challenge is required to validate wildcard certificates this will require access to AWS credentials to modify DNS resource records. Choose an IAM user that has the necessary permissions and then store their access key as a secret:
 
-	oc create secret generic route53-secret --from-literal=aws-secret-access-key=<your AWS access key> -n openshift-operators
+	oc create secret generic route53-secret --from-literal=aws-secret-access-key=<your AWS secret access key> -n openshift-operators
 
 Create a ClusterIssuer resource in the openshift-operators that points to the ACME v2 production endpoint using a DNS-01 to validate wildcard identifiers:
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
 	metadata:
-	  name: letsencrypt
-	  namespace: openshift-operators
+  	name: letsencrypt
 	spec:
-	  acme:
-	    email: admin@example.com
-	    privateKeySecretRef:
-	      name: letsencrypt
-	    server: "https://acme-v02.api.letsencrypt.org/directory"
-	    solvers:
-	      - selector:
-	          dnsZones:
-		    - "example.com"
-	        dns01:
-	          route53:
-		    region: ap-southeast-1
-		    hostedZoneID: <hosted zone id for your domain>
-		    accessKeyID: <your AWS access key id>
-		    secretAccessKeySecretRef:
-		      name: route53-secret
-		      key: aws-secret-access-key
+  	  acme:
+    	    solvers:
+      	      - dns01:
+                  route53:
+                    accessKeyID: <your AWS access key id>
+                    hostedZoneID: <hosted zone id for your domain>
+                    region: <your AWS regions>
+                    secretAccessKeySecretRef:
+                      key: aws-secret-access-key
+                      name: route53-secret
+            server: 'https://acme-v02.api.letsencrypt.org/directory'
+            privateKeySecretRef:
+              name: letsencrypt
+            email: <your email>
 			        
 Create a certificate in the namespace of the application to be protected.
 
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
 	metadata:
-	  name: le-cert
+	  name: my-cert
 	  namespace: my-project
 	spec:
-	  commonName: "*.example.com"
+	  commonName: '*.example.com'
 	  dnsNames:
-	  - "*.example.com"
+	  - '*.example.com'
 	  issuerRef:
 	    kind: ClusterIssuer
 	    name: letsencrypt
@@ -229,114 +224,37 @@ Create a certificate in the namespace of the application to be protected.
 
 Verify the readiness of the certificate:
 
-	oc get certificates -n my-projects
+	oc get certificates -n my-project
+	
+Verify the presence of the certificate stored as a TLS secret:
 
+	oc get secret -n my-project
 
-Later, the ingress resource will be amended to include a TLS section for HTTPS routing and referencing the TLS secret created earlier.
+Modify the existing ingress so that it upgrades connections to SSL/TLS for the host echo.example.com using the wildcard certificate stored in a secret:
+
+	apiVersion: networking.k8s.io/v1
+	kind: Ingress
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+  	ingressClassName: nginx
+	tls:
+	- hosts:
+	  - echo.example.com
+	  secretName: example-com-tls
+  	rules:
+  	- host: echo.example.com
+	    http:
+	      paths:
+	      - backend:
+	          service:
+	            name: echoserver
+	            port:
+	              number: 80
+	        path: /
+	        pathType: Prefix
+
+Modify the AWS API Gateway so that it now routes traffic to port 443 using SSL/TLS. Start by selecting integrations for the previously created  ANY /{proxy+} route and select manage integration. Next edit the integration details and change the listener from TCP:80 to TCP:443. Open the advanced settings and enter the FQDN of the host, i.e., echo.example.com for the secure server name field. Click save and then invoke the API URL for the $default stage as before. This time the field x-forwarded-proto should be https and the field x-forwarded-port should be 443.
 
 ***
-  
-Install the NGINX Ingress Operator (v0.4.0) from OperatorHub selecting all default options. This should complete in about 2-3 minutes.
-
-Create an instance of the NGINX Ingress Controller from Installed Operators selecting all default options (do not change ServiceType to LoadBalancer).
-
-Switch to the openshift-operators namespace:
-
-	oc project openshift-operators
-
-Verify all NGINX resources are healthy:
-
-	oc get all,nginxingresscontroller
-
-Edit the Service resource fronting the NGINX Ingress Controller (service/my-nginx-ingress-controller) and add the following to the metadata:
-
-	annotations:
-    	  service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-    	  service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-    	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
-
-Edit the NGINX Ingress Controller resource (nginxingresscontroller.k8s.nginx.org/my-nginx-ingress-controller) and add the following to the spec:
-
-	configMapData:
-	  proxy-protocol: "True"
-	  real-ip-header: "proxy_protocol"
-	  set-real-ip-from: "0.0.0.0/0"
-
-Also change the value of serviceType from NodePort to LoadBalancer. Save these changes and then wait for a public NLB to be created (later this will be changed to a private NLB):
-
-	oc get all
-
-Verify the status of provisioning the NLB from within the AWS console. This will take 2-3 minutes to complete. Also verify that there are two listeners configured (TCP:80 and TCP:443).
-
-Click on the forwarding rule for the first listener and edit it's attributes. Enable proxy protocol v2 and save. Repeat this step for the next forwarding rule.
-
-To test that everything is working so far return to the CLI and obtain the IP address of the NLB. Add an entry to the local /etc/hosts file resolving the hostname echo.example.com to the public IP address of the NLB.
-
-Curl the endpoint:
-
-	curl -Lkv http://echo.example.com/echo
-
-It is expected that in the Headers Received identifies the real IP address of the caller (x-forwarded-for and x-real-ip). For example:
-
-	CLIENT VALUES:
-	client_address=10.128.2.32
-	command=GET
-	real path=/echo
-	query=nil
-	request_version=1.1
-	request_uri=http://echo.example.com:8080/echo
-
-	SERVER VALUES:
-	server_version=nginx: 1.10.0 - lua: 10001
-
-	HEADERS RECEIVED:
-	accept=*/*
-	connection=close
-	host=echo.example.com
-	user-agent=curl/7.61.1
-	x-forwarded-for=118.200.48.201
-	x-forwarded-host=echo.example.com
-	x-forwarded-port=443
-	x-forwarded-proto=https
-	x-real-ip=118.200.48.201
-	BODY:
-	* Connection #0 to host echo.example.com left intact
-	-no body in request-
-
-The test can also be repeated from a web browser enabling inspection of the X.509 certificate.
-
-Change the NLB from public-facing to private-facing. To do first revert the serviceType to NodePort for the NGINX Ingress Controller resource and verify that the existing load balancer is removed from within OpenShift and AWS. If for some reason the load balancer is not removed from AWS then delete it manually (check for tags kubernetes.io/service-name=openshift-ingress/router-default).
-     
-Editing the Service resource fronting the NGINX Ingress Controller (service/my-nginx-ingress-controller) ensure the annotations now includes the following:
-
-	annotations:
-	  service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
-	  service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
-	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
-	  service.beta.kubernetes.io/aws-load-balancer-internal: "true"
-	
-To make this effective edit the the NGINX Ingress Controller and change the serviceType from NodePort to LoadBalancer. Verify an internal-facing NLB is created in AWS (check for scheme=internal in the description section). Edit the attributes of each listener to enable proxy protocol v2. 
-
-Verify that internal access to the NLB works. Spin up a pod using a distribution that includes curl. And then use the IP address of the NLB to test. For example:
-
-	oc run fedora -it --image=fedora
-	curl -Lk http://echo.example.com/echo  --resolve echo.example.com:80:${NLB_IP} --resolve echo.example.com:${NLB_IP}
-
-This time the x-forwarded-for and x-real-ip should match the IP address of the node that the pod is running on.
-
-To create an API Gateway private integration go to API Gateway from the AWS console and first create a VPC link. Select VPC link for HTTP APIs. Enter any name and select the VPC hosting the ROSA cluster. Select all of the VPC subnets presented but do not select any security group.
-
-Whilst the VPC link is being created start building the API Gateway instance. Select HTTP API as the type and give it a name and go directly to review and create (other bits will be added post-buid).
-
-From the develop drop-down select routes. For the method select ANY and change the path /{proxy+}. After the route is created, select it and then the attach integration option. Select create and attach integration and the route displayed should be ANY /{proxy+}. For the integration target choose private resource. For the integration details select ALB/NLB and choose the ARN corresponding to the internal-facing NLB created earlier. Choose TCP 80 for the listener and the name of the VPC link that was created in the previous step.
-
-From the integrations drop-down select manage integration. Select create parameter mapping and set the mapping type to all incoming requests and set parameter to modify to header.Host with an overwrite value of echo.example.com.
-
-Select the URL of the API with /echo for the endpoint. You should see the echoserver respond. If not then edit the echoserver ingress resource and remove TLS entries for now (TBD).
-
-
-
-
-
-
-
