@@ -189,22 +189,22 @@ Create a ClusterIssuer resource in the openshift-operators that points to the AC
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
 	metadata:
-  	name: letsencrypt
+	  name: letsencrypt
 	spec:
-  	  acme:
-    	    solvers:
-      	      - dns01:
-                  route53:
-                    accessKeyID: <your AWS access key id>
-                    hostedZoneID: <hosted zone id for your domain>
-                    region: <your AWS regions>
-                    secretAccessKeySecretRef:
-                      key: aws-secret-access-key
-                      name: route53-secret
-            server: 'https://acme-v02.api.letsencrypt.org/directory'
-            privateKeySecretRef:
-              name: letsencrypt
-            email: <your email>
+	  acme:
+	  solvers:
+	    - dns01:
+	      route53:
+	        accessKeyID: <your AWS access key id>
+	        hostedZoneID: <hosted zone id for your domain>
+	        region: <your AWS regions>
+	        secretAccessKeySecretRef:
+	          key: aws-secret-access-key
+	          name: route53-secret
+	  server: 'https://acme-v02.api.letsencrypt.org/directory'
+	  privateKeySecretRef:
+	    name: letsencrypt
+	  email: <your email>
 			        
 Create a certificate in the namespace of the application to be protected.
 
