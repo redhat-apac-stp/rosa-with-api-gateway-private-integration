@@ -10,7 +10,9 @@ The instructions below first deploy a non-secured (HTTP) setup to verify connect
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-For the purpose of this setup LetsEncrypt is the chosen issuer and the wildcard domain name to be secured is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
+For the purpose of this setup LetsEncrypt is the chosen issuer. The wildcard domain name to be secured is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
+
+***
 
 A public ROSA STS cluster can be deployed as per the following instructions:
 
@@ -66,8 +68,90 @@ Modify the nginxingresscontroller/my-nginx-ingress-controller resource and chang
 	    real-ip-header: "proxy_protocol"
 	    set-real-ip-from: "0.0.0.0/0"	  
 
+Modify the NLB that is created for service/my-nginx-ingress-controller. Enable proxy protocol version 2 for the two listeners that are created (TCP:80 and TCP:443) from the AWS web console.
 
-Modify the two NLB listeners that are created by enabling proxy protocol version 2 support from the AWS web console. 
+Deploy the echoserver application into a new namespace.
+
+	oc new-project my-project
+
+Create a service account and associate it with the anyuid SCC policy:
+
+	oc create sa sa-with-anyuid -n my-project
+	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid -n my-project
+
+Create the application deployment:
+
+	apiVersion: apps/v1
+	kind: Deployment
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+	  selector:
+	    matchLabels:
+	      app: echoserver
+	  replicas: 1
+	  template:
+	    metadata:
+	      labels:
+	        app: echoserver
+	    spec:
+	      serviceAccount: sa-with-anyuid
+	      serviceAccountName: sa-with-anyuid
+	      containers:
+	      - image: gcr.io/google_containers/echoserver:1.4
+	        imagePullPolicy: Always
+	        name: echoserver
+	        ports:
+	        - containerPort: 8080
+
+Create the application service:
+
+	apiVersion: v1
+	kind: Service
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+	  ports:
+	    - port: 80
+	      targetPort: 8080
+	      protocol: TCP
+	  type: ClusterIP
+	  selector:
+	    app: echoserver
+
+Verify the readiness of all resources:
+
+	oc get all -n my-project
+
+Configure an ingress resource exposing an HTTP route with a FQDN of echo.example.com that will be managed by the NGINX Ingress Controller:
+
+	apiVersion: networking.k8s.io/v1
+	kind: Ingress
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+  	ingressClassName: nginx
+  	rules:
+  	- host: echo.example.com
+	    http:
+	      paths:
+	      - backend:
+	          service:
+	            name: echoserver
+	            port:
+	              number: 80
+	        path: /
+	        pathType: Prefix
+
+
+
+
+
+
+are created by enabling proxy protocol version 2 support from the AWS web console. 
 
 
 
@@ -127,77 +211,6 @@ Verify the readiness of the certificate:
 
 	oc get certificates -n my-projects
 
-Create a service account for the application and apply the anyuid SCC policy:
-
-	oc create sa sa-with-anyuid -n my-projects
-	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid -n my-projects
-
-Create the application deployment:
-
-	apiVersion: apps/v1
-	kind: Deployment
-	metadata:
-	  name: echoserver
-	  namespace: my-projects
-	spec:
-	  selector:
-	    matchLabels:
-	      app: echoserver
-	  replicas: 1
-	  template:
-	    metadata:
-	      labels:
-	        app: echoserver
-	    spec:
-	      serviceAccount: sa-with-anyuid
-	      serviceAccountName: sa-with-anyuid
-	      containers:
-	      - image: gcr.io/google_containers/echoserver:1.4
-	        imagePullPolicy: Always
-	        name: echoserver
-	        ports:
-	        - containerPort: 8080
-
-Create the application service:
-
-	apiVersion: v1
-	kind: Service
-	metadata:
-	  name: echoserver
-	  namespace: my-projects
-	spec:
-	  ports:
-	    - port: 80
-	      targetPort: 8080
-	      protocol: TCP
-	  type: ClusterIP
-	  selector:
-	    app: echoserver
-
-Verify the readiness of all resources:
-
-	oc get all -n my-projects
-
-Configure an ingress resource exposing an HTTP route to be managed by the NGINX Ingress Controller:
-
-	apiVersion: networking.k8s.io/v1
-	kind: Ingress
-	metadata:
-	  name: echoserver
-	  namespace: my-projects
-	spec:
-  	ingressClassName: nginx
-  	rules:
-  	- host: www.example.com
-	    http:
-	      paths:
-	      - backend:
-	          service:
-	            name: echoserver
-	            port:
-	              number: 80
-	        path: /
-	        pathType: Prefix
 
 Later, the ingress resource will be amended to include a TLS section for HTTPS routing and referencing the TLS secret created earlier.
 
