@@ -2,15 +2,15 @@
 
 These instructions describe how to configure end-to-end connectivity between an application hosted on ROSA and AWS API Gateway using private integrations for HTTP APIs and SSL/TLS certificates for protection.
 
-AWS API Gateway supports private integrations via a VPC link that terminates on NLB/ALB endpoints - CLB endpoints are not supported for termination. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway. The ROSA public roadmap indicates that support for NLB is planned and the need for deploying NGINX Ingress Controller to accomplish what is described below can subsequently be reviewed. 
+AWS API Gateway supports private integrations via a VPC link that terminates on NLB/ALB endpoints - CLB endpoints are not supported for termination of a VPC link. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway. Furthermore the ingress controller must support proxy protocol version 2 to send origin source and destination address information.  
 
 https://github.com/openshift-cs/managed-openshift/projects/2
 
-The instructions below first deploy a non-secured (HTTP) private integration to verify the overall setup and facilite troubleshooting. Subsequently this is upgraded to a secured (HTTPS) private integration using a public X509 certificate that must be issued by one of the Certificate Authorities that API Gateway trusts as per the following link:
+The instructions below first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured (SSL/TLS) configuration using a X509 certificate that must be issued by one of the trusted Certificate Authorities as per the following link:
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-For the purpose of this setup LetsEncrypt production certificates were used (staging certificates from LetsEncrypt are not a supported by AWS API Gateway).
+For the purpose of this setup LetsEncrypt is used as the issuer and the wildcard domain name to be secured is \*.example.com. Change this to your own registered domain name and configure AWS Route 53 to resolve requests against the base domain name.
 
 A public ROSA STS cluster can be deployed as per the following instructions:
 
