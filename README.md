@@ -16,17 +16,42 @@ A public ROSA STS cluster can be deployed as per the following instructions:
 
 https://mobb.ninja/docs/rosa/sts/
 
-NGINX Ingress Controllers can be installed by the NGINX Ingress Operator (v0.4.0) via the OperatorHub web console in OpenShift as per the following instructions:
+Install the NGINX Ingress Operator (v0.4.0) via the OperatorHub in the OpenShift web console as per the following instructions:
 
 https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
-After installing the operator create an instance of the NGINX Ingress Controller fronted by a load balancer in a new namespace (e.g., my-nginx-ingress):
+After installing the operator create a minimal configuration for a new NGINX Ingress Controller instance in the openshift-operators namespace:
 
 	apiVersion: k8s.nginx.org/v1alpha1
 	kind: NginxIngressController
 	metadata:
 	  name: my-nginx-ingress-controller
-	  namespace: my-nginx-ingress
+	  namespace: openshift-operators
+	spec:
+  	  type: deployment
+	  nginxPlus: false
+	  image:
+	    repository: nginx/nginx-ingress
+	    tag: edge-ubi
+	    pullPolicy: Always
+	  replicas: 1
+	  serviceType: NodePort
+
+Modify the service/my-nginx-ingress-controller that is created and add the following annotations to the metadata section:
+
+	annotations:
+	  service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+	  service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+	  service.beta.kubernetes.io/aws-load-balancer-backend-internal: "true"
+	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+
+Modify the nginxingresscontroller/my-nginx-ingress-controller resource and change the serviceType and add a configMapData stanza:
+
+	apiVersion: k8s.nginx.org/v1alpha1
+	kind: NginxIngressController
+	metadata:
+	  name: my-nginx-ingress-controller
+	  namespace: openshift-operators
 	spec:
   	  type: deployment
 	  nginxPlus: false
@@ -36,6 +61,20 @@ After installing the operator create an instance of the NGINX Ingress Controller
 	    pullPolicy: Always
 	  replicas: 1
 	  serviceType: LoadBalancer
+	  configMapData:
+	    proxy-protocol: "True"
+	    real-ip-header: "proxy_protocol"
+	    set-real-ip-from: "0.0.0.0/0"	  
+
+
+Modify the two NLB listeners that are created by enabling proxy protocol version 2 support from the AWS web console. 
+
+
+
+change the serviceType specificaiton from NodePort to LoadBalancer. Also add the following lines to the specificatoin section:
+
+
+ 
 
 Note that the load balancer type provisioned by the NGINX Ingress Controller defaults to CLB. Later, this will be switched to a NLB for integration with the AWS API Gateway.
 
