@@ -158,7 +158,7 @@ Test connectivity to the internal-facing NLB from a node in the VPC hosting the 
 
 	oc debug node/<any node> -- curl <elb ip> -H 'echo.example.com'
 	
-The echoserver output displays the real IP address of the caller (in the x-forwarded-for field) as well as the IP address of the NGINX Ingress Controller pod (client_address) which is the client calling the echoserver service.
+The echoserver output displays the real IP address of the user-agent (in the x-forwarded-for field) as well as the IP address of the NGINX Ingress Controller pod (client_address field) requesting the URI of the echoserver host.
 
 ***
 
