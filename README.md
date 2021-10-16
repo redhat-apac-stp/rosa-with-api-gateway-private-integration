@@ -10,7 +10,7 @@ The instructions below first deploy a non-secured (HTTP) setup to verify connect
 
 https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
-For the purpose of this setup LetsEncrypt is used as the issuer and the wildcard domain name to be secured is \*.example.com. Change this to your own registered domain name and configure AWS Route 53 to resolve requests against the base domain name.
+For the purpose of this setup LetsEncrypt is the issuer and the wildcard domain name to be secured is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in AWS Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
 
 A public ROSA STS cluster can be deployed as per the following instructions:
 
