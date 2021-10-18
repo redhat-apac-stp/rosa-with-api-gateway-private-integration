@@ -4,9 +4,9 @@ These instructions describe how to configure end-to-end connectivity between an 
 
 API Gateway supports private integrations via a VPC link that terminates on NLB/ALB endpoints - CLB endpoints are not supported when deploying VPC links. Thus the default ROSA OpenShift Router which deploys a CLB cannot be used for accessing applications running on ROSA via the AWS API Gateway. Furthermore the ingress controller must support proxy protocol version 2 to send origin source and destination address information. Adding additional Ingress Controllers (haproxy) and publishing these via NLB is currently not supported by SRE.
 
-The instructions below first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured channel using a SSL/TLS certificate that must be validated by one of the following trusted Certificate Authorities: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html. Note that self-signed certificates are not trusted by API Gateway.
+The instructions below first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured channel using a SSL/TLS certificate that must be validated by one of the following public Certificate Authorities: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html. Note that self-signed certificates or those issued by private Certificate Authorities are not supported by API Gateway.
 
-For the purpose of this setup LetsEncrypt is the chosen certificate issuer. The wildcard domain name for the certificate CommonName (CN) is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in Route 53 for the base domain name (example.com). Note down the auto-generated hosted zone ID for use later.
+For the purpose of this setup LetsEncrypt used as the public Certificate Authority. The wildcard domain name used for the certificate CommonName (CN) and subject altNames is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in Route 53 for the base domain name that LetsEncrypt can validate. Note down the auto-generated hosted zone ID for use later.
 
 ***
 
