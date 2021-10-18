@@ -217,6 +217,8 @@ Create a certificate in the namespace of the application to be protected.
 	    kind: ClusterIssuer
 	    name: letsencrypt
 	  secretName: example-com-tls
+	  privateKey:
+	    rotationPolicy: Always
 
 Verify the readiness of the certificate:
 
