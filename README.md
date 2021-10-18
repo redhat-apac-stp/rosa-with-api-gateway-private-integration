@@ -6,7 +6,7 @@ API Gateway supports private integrations via a VPC link that terminates on NLB/
 
 The instructions below first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured channel using a SSL/TLS certificate that must be validated by one of the following public Certificate Authorities: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html. Note that self-signed certificates or those issued by private Certificate Authorities are not supported by API Gateway.
 
-For the purpose of this setup LetsEncrypt used as the public Certificate Authority. The wildcard domain name used for the certificate CommonName (CN) and subject altNames is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in Route 53 for the base domain name that LetsEncrypt can validate. Note down the auto-generated hosted zone ID for use later.
+For the purpose of this setup LetsEncrypt is used as the public Certificate Authority. The wildcard domain name used for the certificate CommonName (CN) and subject altNames is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in Route 53 for the base domain name that LetsEncrypt can validate. Note down the auto-generated hosted zone ID for use later.
 
 ***
 
@@ -176,7 +176,33 @@ The next steps upgrade the unencrypted connection between the API Gateway and RO
 
 Install the Cert Manager Operator (v1.5.4) via the OperatorHub from the OpenShift web console. Do not change any of the defaults. For more details please consult the following link: https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
-These steps assume that a registered domain name which is under your control has been provisioned in Route 53. LetsEncrypt uses a DNS-01 challenge to validate wildcard certificates and to do so requires the issuer to have edit access permissions to Route 53. Provide the credentials of an IAM user that has these permissions:
+These steps assume that a registered domain name which is under your control has been provisioned in a public hosted zone hosted by Route 53. An IAM user with the following set of permissions needs to be created that cert-manager will use for performing the DNS-01 challenge:
+
+	{
+	  "Version": "2012-10-17",
+	  "Statement": [
+	    {
+	      "Effect": "Allow",
+	      "Action": "route53:GetChange",
+	      "Resource": "arn:aws:route53:::change/*"
+	    },
+	    {
+	      "Effect": "Allow",
+	      "Action": [
+	        "route53:ChangeResourceRecordSets",
+	        "route53:ListResourceRecordSets"
+	      ],
+	      "Resource": "arn:aws:route53:::hostedzone/<hosted zone id for your domain>"
+	    },
+	    {
+	      "Effect": "Allow",
+	      "Action": "route53:ListHostedZonesByName",
+	      "Resource": "*"
+	    }
+	  ]
+	}
+
+Store the credentials of this user in a secret:
 
 	oc create secret generic route53-secret --from-literal=aws-secret-access-key=<your AWS secret access key> -n openshift-operators
 
