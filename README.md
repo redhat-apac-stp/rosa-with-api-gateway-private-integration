@@ -207,7 +207,7 @@ Create a certificate in the namespace of the application to be protected.
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
 	metadata:
-	  name: le-cert
+	  name: example-com-tls
 	  namespace: my-project
 	spec:
 	  commonName: '*.example.com'
