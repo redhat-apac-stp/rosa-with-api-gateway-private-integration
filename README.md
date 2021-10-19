@@ -264,22 +264,22 @@ Modify the existing ingress so that it upgrades incoming connections to use SSL/
 	  name: echoserver
 	  namespace: my-project
 	spec:
-  	ingressClassName: nginx
-	tls:
-	- hosts:
-	  - echo.example.com
-	  secretName: example-com-tls
-  	rules:
-  	- host: echo.example.com
-	    http:
-	      paths:
-	      - backend:
-	          service:
-	            name: echoserver
-	            port:
-	              number: 80
-	        path: /
-	        pathType: Prefix
+  	  ingressClassName: nginx
+	  tls:
+	  - hosts:
+	    - echo.example.com
+	    secretName: example-com-tls
+  	  rules:
+  	  - host: echo.example.com
+	      http:
+	        paths:
+	        - backend:
+	            service:
+	              name: echoserver
+	              port:
+	                number: 80
+	          path: /
+	          pathType: Prefix
 
 In the API Gateway from the integrations menu select the previously created  ANY /{proxy+} route and select manage integration. Edit integration details and change the listener from TCP:80 to TCP:443. Under the advanced settings enter the FQDN of the host (e.g., echo.example.com) as the secure server name. After saving these changes invoke the API URL for the $default stage as before. This time the field x-forwarded-proto should be https and the field x-forwarded-port should be 443.
 
