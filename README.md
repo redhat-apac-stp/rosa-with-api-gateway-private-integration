@@ -121,18 +121,18 @@ Configure an ingress resource exposing an HTTP route for the FQDN echo.example.c
 	  name: echoserver
 	  namespace: my-project
 	spec:
-  	ingressClassName: nginx
-  	rules:
-  	- host: echo.example.com
-	  http:
-	    paths:
-	    - backend:
-	        service:
-	          name: echoserver
-	          port:
-	            number: 80
-	      path: /
-	      pathType: Prefix
+  	  ingressClassName: nginx
+  	  rules:
+  	  - host: echo.example.com
+	    http:
+	      paths:
+	      - backend:
+	          service:
+	            name: echoserver
+	            port:
+	              number: 80
+	        path: /
+	        pathType: Prefix
 
 Confirm all resources are ready and that the NGINX Ingress Controller is managing the ingress instance:
 
