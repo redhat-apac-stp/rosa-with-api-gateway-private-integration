@@ -14,7 +14,7 @@ A public ROSA STS cluster can be deployed as per the following: https://mobb.nin
 
 Install the NGINX Ingress Operator (v0.4.0) via OperatorHub from the OpenShift web console. Do not change any of the defaults. For more details please consult the following link: https://github.com/nginxinc/nginx-ingress-operator/blob/master/docs/openshift-installation.md
 
-After installing the NGINX Ingress Operator create a minimal configuration for a new instance with a service type of NodePort in the openshift-operators namespace.
+After installing the NGINX Ingress Operator create a minimal NGINX Ingress Controller instance with a service type of NodePort in the openshift-operators namespace.
 
 	apiVersion: k8s.nginx.org/v1alpha1
 	kind: NginxIngressController
@@ -60,7 +60,7 @@ Modify nginxingresscontroller/my-nginx-ingress-controller and change the service
 	    real-ip-header: "proxy_protocol"
 	    set-real-ip-from: "0.0.0.0/0"	  
 
-Modify the internal-facing NLB that is created from the AWS web console. There will be two listeners associated with the NLB (TCP:80 and TCP:443) and both will need to have proxy protocol version 2 attributes enabled.
+Modify the internal-facing NLB that is created from the AWS web console. There will be two listeners associated with the NLB (TCP:80 and TCP:443) and both will need to have their proxy protocol version 2 attributes enabled.
 
 Deploy the echoserver application into a new namespace.
 
@@ -142,7 +142,7 @@ Confirm all resources are ready and that the NGINX Ingress Controller is managin
 Test connectivity to the internal-facing NLB from any node in the ROSA cluster:
 
 	elb=`oc get svc -n openshift-operators | grep 'nginx-ingress-controller' | awk '{print $4}'`
-	host $elb | awk '{print$4}'`
+	host $elb | awk '{print$4}'
 
 	oc debug node/<any node> -- curl <elb ip address> -H 'echo.example.com'
 	
@@ -154,11 +154,11 @@ From the AWS web console select the AWS API Gateway service and first create a V
 
 Whilst the VPC link is being provisioned start creating the HTTP API method type and give it a name before pressing the review and create button (skip all of the other steps as these will be completed post-build).
 
-From the develop menu select routes and create a route. Set the method to ANY and set the route path to /{proxy+}.
+From the develop menu select routes and create a route with a method of ANY and a route of /{proxy+}.
 
-On the next screen that appears select the ANY method under the /{proxy+} route and select the attach an integration option. Set the integration target to private resource. Select manual for the method and choose ALB/NLB for the target. Select the correct NLB ARN. Select the listener for TCP:80. Do not modify any of the advanced settings. Select the VPC link name that should have completed provisioning by now.
+On the next screen that appears select the ANY method for the /{proxy+} route and select attach an integration. Create a new integration and set the integration target to be a private resource. Select manually and choose ALB/NLB as the target service. Select the correct NLB ARN (internal-facing). Select TCP:80 for the listener. Do not modify any of the advanced settings. Select the VPC link that should have completed provisioning.
 
-From the integrations menu select manage integration and then create a new parameter mapping. Set the mapping type to all incoming requests and then add a mapping with the following details:
+From the integrations menu select manage integration and create a new parameter mapping. Set the mapping type to all incoming requests and add a mapping with the following parameter option settings:
 
 	parameter to modify = header.Host
 	modification type = Overwrite
