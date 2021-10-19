@@ -246,11 +246,13 @@ Create a certificate in the namespace of the application to be protected.
 	  privateKey:
 	    rotationPolicy: Always
 
+In Route 53 verify the creation of a TXT record for the hosted zone of your domain.
+
 Verify the readiness of the certificate:
 
 	oc get certificates -n my-project
 	
-Verify the presence of the TLS secret that stores the wildcard certificate and private key:
+Verify the presence of the TLS secret that stores the certificate and private key:
 
 	oc get secret -n my-project
 
@@ -279,9 +281,7 @@ Modify the existing ingress so that it upgrades incoming connections to use SSL/
 	        path: /
 	        pathType: Prefix
 
-Modify the AWS API Gateway so that it now routes traffic to port 443 using SSL/TLS. 
-
-From the integrations menu select the previously created  ANY /{proxy+} route and select manage integration. Edit the integration details and change the listener type from TCP:80 to TCP:443. Under the advanced settings enter the FQDN of the host (e.g., echo.example.com) as the secure server name. After saving these changes invoke the API URL for the $default stage as before. This time the field x-forwarded-proto should be https and the field x-forwarded-port should be 443.
+In the API Gateway from the integrations menu select the previously created  ANY /{proxy+} route and select manage integration. Edit integration details and change the listener from TCP:80 to TCP:443. Under the advanced settings enter the FQDN of the host (e.g., echo.example.com) as the secure server name. After saving these changes invoke the API URL for the $default stage as before. This time the field x-forwarded-proto should be https and the field x-forwarded-port should be 443.
 
 ***
 
