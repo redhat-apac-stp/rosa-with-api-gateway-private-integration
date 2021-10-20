@@ -84,7 +84,7 @@ Create the application deployment:
 	  selector:
 	    matchLabels:
 	      app: echoserver
-	  replicas: 1
+	  replicas: 2
 	  template:
 	    metadata:
 	      labels:
