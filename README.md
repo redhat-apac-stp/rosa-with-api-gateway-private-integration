@@ -6,7 +6,7 @@ API Gateway supports private integrations via a VPC link that terminates on NLB/
 
 The instructions below will first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured channel using a SSL/TLS certificate that must be validated by one of the following public Certificate Authorities: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html. Note that self-signed certificates or those issued by private Certificate Authorities are not supported by API Gateway. A diagram depicting the secured channel is as follows.
 
-<img src="https://raw.githubusercontent.com/redhat-apac-stp/rosa-with-api-gateway-private-integration/main/ROSA%20for%20CIMB-Thai%20-%20ROSA%20with%20API%20Gateway.jpeg" alt="My Project GIF" width="900" height="400">
+<img src="https://raw.githubusercontent.com/redhat-apac-stp/rosa-with-api-gateway-private-integration/main/ROSA%20for%20CIMB-Thai%20-%20ROSA%20with%20API%20Gateway.jpeg" alt="My Project GIF" width="900" height="500">
 
 For the purpose of this setup LetsEncrypt is used as the public Certificate Authority. The wildcard domain name used for the certificate CommonName (CN) and subject altNames is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in Route 53 for the base domain name that LetsEncrypt can validate. Note down the auto-generated hosted zone ID for use later.
 
