@@ -178,7 +178,7 @@ The next steps upgrade the unencrypted connection between the API Gateway and RO
 
 Install the Cert Manager Operator (v1.5.4) via the OperatorHub from the OpenShift web console. Do not change any of the defaults. For more details please consult the following link: https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
-These steps assume that a registered domain name which is under your control has been provisioned in a public hosted zone hosted by Route 53. An IAM user with the following set of permissions needs to be created that cert-manager will use for performing the DNS-01 challenge:
+These steps assume that a registered domain name which is under your control has been provisioned in a public hosted zone hosted on Route 53. An IAM user with the following set of permissions needs to be created that cert-manager will use for performing the DNS-01 challenge:
 
 	{
 	  "Version": "2012-10-17",
