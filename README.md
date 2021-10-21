@@ -178,37 +178,66 @@ The next steps upgrade the unencrypted connection between the API Gateway and RO
 
 Install the Cert Manager Operator (v1.5.4) via the OperatorHub from the OpenShift web console. Do not change any of the defaults. For more details please consult the following link: https://cert-manager.io/docs/installation/operator-lifecycle-manager/
 
-These steps assume that a registered domain name which is under your control has been provisioned in a public hosted zone hosted on Route 53. An IAM user with the following set of permissions needs to be created that cert-manager will use for performing the DNS-01 challenge:
+These steps assume that a registered domain name which is under your control has been provisioned in a public hosted zone on Route 53. The OIDC Identity Provider created during ROSA installation is used to enable the Cert Manager service account to obtain temporary credentials (using IAM Roles for Service Accounts) for modifying Route 53 records to enable the DNS-01 challenge to be performed by LetsEncrypt.
+
+Use IAM to create a policy named cert-manager-policy with the following set of permissions:
+
+	{
+	    "Version": "2012-10-17",
+	    "Statement": [
+		{
+		    "Effect": "Allow",
+		    "Action": "route53:GetChange",
+		    "Resource": "arn:aws:route53:::change/*"
+		},
+		{
+		    "Effect": "Allow",
+		    "Action": [
+			"route53:ChangeResourceRecordSets",
+			"route53:ListResourceRecordSets"
+		    ],
+		    "Resource": "arn:aws:route53:::hostedzone/Z08418241KOHSUDI6I683"
+		}
+	    ]
+	}
+
+Use IAM to create a role named cert-manager-irsa and link it to the aforementioned policy. Establish a trust relationship with the OIDC Identity Provider that was created during ROSA cluster installation. You can obtain the name via the following command:
+
+	rosa describe cluster -c <cluster name>
+	
+The trust relationship policy should look like the following:
 
 	{
 	  "Version": "2012-10-17",
 	  "Statement": [
 	    {
 	      "Effect": "Allow",
-	      "Action": "route53:GetChange",
-	      "Resource": "arn:aws:route53:::change/*"
-	    },
-	    {
-	      "Effect": "Allow",
-	      "Action": [
-	        "route53:ChangeResourceRecordSets",
-	        "route53:ListResourceRecordSets"
-	      ],
-	      "Resource": "arn:aws:route53:::hostedzone/<hosted zone id for your domain>"
-	    },
-	    {
-	      "Effect": "Allow",
-	      "Action": "route53:ListHostedZonesByName",
-	      "Resource": "*"
+	      "Principal": {
+		"Federated": "arn:aws:iam::<your AWS account>:oidc-provider/rh-oidc.s3.us-east-1.amazonaws.com/<your OIDC endpoint>"
+	      },
+	      "Action": "sts:AssumeRoleWithWebIdentity",
+	      "Condition": {
+		"StringEquals": {
+		  "rh-oidc.s3.us-east-1.amazonaws.com/<your OIDC endpoint>:sub": "system:serviceaccount:openshift-operators:cert-manager"
+		}
+	      }
 	    }
 	  ]
 	}
 
-Store the credentials of this user in a secret:
+Edit the cert-manager service account (sa/cert-manager) in the openshift-operators namespace and add the following annotation:
 
-	oc create secret generic route53-secret --from-literal=aws-secret-access-key=<your AWS secret access key> -n openshift-operators
+	annotations:
+	  eks.amazonaws.com/role-arn: arn:aws:iam::<your AWS account>:role/cert-manager-irsa
 
-Create a ClusterIssuer resource in the openshift-operators that points to the ACME v2 production endpoint for DNS-01 challenge:
+Delete the cert-manager pod so that it gets recreated with a service account token (aws-iam-token) injected into the pod via the webhook token authenticator. The spec section for the pod should now include the following environment variables and values:
+
+	- name: AWS_ROLE_ARN
+	  value: arn:aws:iam::<your AWS account>:role/cert-manager-irsa
+	- name: AWS_WEB_IDENTITY_TOKEN_FILE
+	  value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+
+Create a ClusterIssuer resource in the openshift-operators that points to the LetsEncrypt production endpoint used for performing DNS-01 challenges:
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
@@ -219,18 +248,14 @@ Create a ClusterIssuer resource in the openshift-operators that points to the AC
 	  solvers:
 	    - dns01:
 	      route53:
-	        accessKeyID: <your AWS access key id>
 	        hostedZoneID: <hosted zone id for your domain>
 	        region: <your AWS regions>
-	        secretAccessKeySecretRef:
-	          key: aws-secret-access-key
-	          name: route53-secret
 	  server: 'https://acme-v02.api.letsencrypt.org/directory'
 	  privateKeySecretRef:
 	    name: letsencrypt
 	  email: <your email>
 			        
-Create a certificate in the namespace of the application to be protected.
+Create a certificate in the namespace of the application.
 
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
