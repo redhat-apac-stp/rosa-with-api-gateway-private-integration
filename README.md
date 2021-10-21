@@ -196,7 +196,7 @@ Use IAM to create a policy named cert-manager-policy with the following set of p
 			"route53:ChangeResourceRecordSets",
 			"route53:ListResourceRecordSets"
 		    ],
-		    "Resource": "arn:aws:route53:::hostedzone/Z08418241KOHSUDI6I683"
+		    "Resource": "arn:aws:route53:::hostedzone/<hosted zone id for your domain>"
 		}
 	    ]
 	}
@@ -213,7 +213,7 @@ The trust relationship policy should look like the following:
 	    {
 	      "Effect": "Allow",
 	      "Principal": {
-		"Federated": "arn:aws:iam::<your AWS account>:oidc-provider/rh-oidc.s3.us-east-1.amazonaws.com/<your OIDC endpoint>"
+		"Federated": "arn:aws:iam::<your AWS account id>:oidc-provider/rh-oidc.s3.us-east-1.amazonaws.com/<your OIDC endpoint>"
 	      },
 	      "Action": "sts:AssumeRoleWithWebIdentity",
 	      "Condition": {
@@ -228,12 +228,12 @@ The trust relationship policy should look like the following:
 Edit the cert-manager service account (sa/cert-manager) in the openshift-operators namespace and add the following annotation:
 
 	annotations:
-	  eks.amazonaws.com/role-arn: arn:aws:iam::<your AWS account>:role/cert-manager-irsa
+	  eks.amazonaws.com/role-arn: arn:aws:iam::<your AWS account id>:role/cert-manager-irsa
 
 Delete the cert-manager pod so that it gets recreated with a service account token (aws-iam-token) injected into the pod via the webhook token authenticator. The spec section for the pod should now include the following environment variables and values:
 
 	- name: AWS_ROLE_ARN
-	  value: arn:aws:iam::<your AWS account>:role/cert-manager-irsa
+	  value: arn:aws:iam::<your AWS account id>:role/cert-manager-irsa
 	- name: AWS_WEB_IDENTITY_TOKEN_FILE
 	  value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
 
