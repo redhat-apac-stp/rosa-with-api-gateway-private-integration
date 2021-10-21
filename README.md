@@ -201,7 +201,7 @@ Use IAM to create a policy named cert-manager-policy with the following set of p
 	    ]
 	}
 
-Use IAM to create a role named cert-manager-irsa and link it to the aforementioned policy. Establish a trust relationship with the OIDC Identity Provider that was created during ROSA cluster installation. You can obtain the name via the following command:
+Use IAM to create a role named cert-manager-irsa and link it to the aforementioned policy. Establish a trust relationship with the OIDC Identity Provider that was created during ROSA cluster installation. You can obtain the name of the S3 bucket hosting your JWKS endpoint via the following command:
 
 	rosa describe cluster -c <cluster name>
 	
@@ -213,12 +213,12 @@ The trust relationship policy should look like the following:
 	    {
 	      "Effect": "Allow",
 	      "Principal": {
-		"Federated": "arn:aws:iam::<your AWS account id>:oidc-provider/rh-oidc.s3.us-east-1.amazonaws.com/<your OIDC endpoint>"
+		"Federated": "arn:aws:iam::<your AWS account id>:oidc-provider/rh-oidc.s3.us-east-1.amazonaws.com/<S3 bucket hosting your JWKS endpoint>"
 	      },
 	      "Action": "sts:AssumeRoleWithWebIdentity",
 	      "Condition": {
 		"StringEquals": {
-		  "rh-oidc.s3.us-east-1.amazonaws.com/<your OIDC endpoint>:sub": "system:serviceaccount:openshift-operators:cert-manager"
+		  "rh-oidc.s3.us-east-1.amazonaws.com/<S3 bucket hosting your JWKS endpoint>:sub": "system:serviceaccount:openshift-operators:cert-manager"
 		}
 	      }
 	    }
