@@ -206,7 +206,7 @@ Add the following annotation to the the cert-manager service account:
 
 Delete the cert-manager pod and inspect the re-created pod to validate the existence of AWS environment variables and token.
 
-Create a ClusterIssuer resource in the openshift-operators namespace that points to a LetsEncrypt endpoint for performing a DNS01 challenge:
+Create a ClusterIssuer resource in the openshift-operators namespace that points to a LetsEncrypt endpoint for the DNS01 challenge. Note that this should be a production endpoint as this uses a Certificate Authority from the list that is supported by API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html).
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
