@@ -2,7 +2,13 @@
 
 This article describe how to setup ROSA and AWS API Gateway using private APIs. The solution relieas upon SSL/TLS certificates for enabling end-to-end HTTPS and uses a split-horizon DNS approach to enable a single registered domain name to be used for both external and internal endpoints so as to minimise the total number of registered domains and certificates needed.
 
-A diagram of the solution architecture showing all of the major components and flows is presented:
+A diagram of the solution architecture showing all of the major components and flows is presented.
+
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.jpeg" alt="ROSA with AWS API Gateway" width="970" height="660">
+
+ROSA can be deployed as either a public or private cluster and the instructions will work in either case. The diagram above depicts a private ROSA cluster deployed in STS mode as per the instructions here:
+
+https://mobb.ninja/docs/rosa/sts/
 
 
 
@@ -12,7 +18,7 @@ API Gateway supports private integrations via a VPC link that terminates on NLB/
 
 The instructions below will first deploy a non-secured (HTTP) setup to verify connectivity. Subsequently this is upgraded to a secured channel using a SSL/TLS certificate that must be validated by one of the following public Certificate Authorities: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html. Note that self-signed certificates or those issued by private Certificate Authorities are not supported by API Gateway. A diagram depicting the secured channel is as follows.
 
-<img src="https://raw.githubusercontent.com/redhat-apac-stp/rosa-with-api-gateway-private-integration/main/ROSA%20for%20CIMB-Thai%20-%20ROSA%20with%20API%20Gateway.jpeg" alt="My Project GIF" width="970" height="540">
+<img src="https://raw.githubusercontent.com/redhat-apac-stp/rosa-with-api-gateway-private-integration/main/ROSA%20for%20CIMB-Thai%20-%20ROSA%20with%20API%20Gateway.jpeg" alt="My Project GIF">
 
 For the purpose of this setup LetsEncrypt is used as the public Certificate Authority. The wildcard domain name used for the certificate CommonName (CN) and subject altNames is \*.example.com. Change this to a registered domain name under your control and configure a public hosted zone in Route 53 for the base domain name that LetsEncrypt can validate. Note down the auto-generated hosted zone ID for use later.
 
