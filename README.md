@@ -1,14 +1,162 @@
 # ROSA with AWS API Gateway
 
-This article describe how to setup ROSA and AWS API Gateway using private APIs. The solution relieas upon SSL/TLS certificates for enabling end-to-end HTTPS and uses a split-horizon DNS approach to enable a single registered domain name to be used for both external and internal endpoints so as to minimise the total number of registered domains and certificates needed.
+This article describe how to setup ROSA and AWS API Gateway using private APIs. The solution relieas upon SSL/TLS certificates for enabling end-to-end HTTPS and uses a split-horizon DNS approach to enable a single registered domain name to be used for both internal and external endpoints so as to minimise the total number of domains and certificates needed.
 
 A diagram of the solution architecture showing all of the major components and flows is presented.
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.jpeg" alt="ROSA with AWS API Gateway" width="970" height="660">
 
-ROSA can be deployed as either a public or private cluster and the instructions will work in either case. The diagram above depicts a private ROSA cluster deployed in STS mode as per the instructions here:
+ROSA can be deployed as either a public or private cluster and the instructions will work in either case. The diagram above depicts a private ROSA cluster deployed in STS mode as per the following set of instructions:
 
 https://mobb.ninja/docs/rosa/sts/
+
+Post-installation of ROSA install the following set of operators from OperatorHub in the OpenShift web console:
+
+	NGINX Ingress Operator v0.4.0
+	Cert-Manager v1.5.4
+	Web Terminal v1.3.0
+
+All operators are installed in the openshift-operators namespace as per default.
+
+The next step require a registered a domain name that will be used for accessing both internal and external endpoints. The domain names used in these instructions are example.com (base domain) and \*.example.com (wilcard domain). Change these to a domain that is registered to you.
+
+Create a public hosted zone in Route 53 with your registered domain name and update your DNS registrar to resolve queries to the name servers that Route 53 has allocated. Note down the hosted zone ID for use later.
+
+Create a private hosted zone in Route 53 with the same domain name and associate it with the VPC hosting ROSA. An additional A record will be added later to this zone aliasing the NLB endpoint fronting the NGINX ingress controller which will be created next.
+
+Create an NGINX ingress controller using the following custom resource in the openshift-operators namespace:
+
+	apiVersion: k8s.nginx.org/v1alpha1
+	kind: NginxIngressController
+	metadata:
+	  name: my-nginx-ingress-controller
+	spec:
+  	  type: deployment
+	  nginxPlus: false
+	  image:
+	    repository: nginx/nginx-ingress
+	    tag: edge-ubi
+	    pullPolicy: Always
+	  replicas: 1
+	  serviceType: NodePort
+
+Add the following annotations to the my-nginx-ingress-controller service:
+
+	annotations:
+	  service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+	  service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+	  service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+
+Update the my-nginx-ingress-controller configuration so that it will trigger the creation of an NLB:
+
+	apiVersion: k8s.nginx.org/v1alpha1
+	kind: NginxIngressController
+	metadata:
+	  name: my-nginx-ingress-controller
+	spec:
+  	  type: deployment
+	  nginxPlus: false
+	  image:
+	    repository: nginx/nginx-ingress
+	    tag: edge-ubi
+	    pullPolicy: Always
+	  replicas: 1
+	  serviceType: LoadBalancer
+	  configMapData:
+	    proxy-protocol: "True"
+	    real-ip-header: "proxy_protocol"
+	    set-real-ip-from: "0.0.0.0/0"	  
+
+From the AWS web console modify the NLB that was created by enabling proxy protocol for both listeners (TCP:80 and TCP:443).
+
+Add an additional A record (\*.example.com) to the private hosted zone aliasing the NLB endpoint.
+
+In the next steps the echoserver application is deployed. Create a namespace for hosting this application.
+
+	oc new-project my-project
+
+Create a service account and associate it with the anyuid SCC policy (echoserver runs as user root):
+
+	oc create sa sa-with-anyuid -n my-project
+	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid -n my-project
+
+Apply the application deployment:
+
+	apiVersion: apps/v1
+	kind: Deployment
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+	  selector:
+	    matchLabels:
+	      app: echoserver
+	  replicas: 1
+	  template:
+	    metadata:
+	      labels:
+	        app: echoserver
+	    spec:
+	      serviceAccount: sa-with-anyuid
+	      serviceAccountName: sa-with-anyuid
+	      containers:
+	      - image: gcr.io/google_containers/echoserver:1.4
+	        imagePullPolicy: Always
+	        name: echoserver
+	        ports:
+	        - containerPort: 8080
+
+Apply the application service:
+
+	apiVersion: v1
+	kind: Service
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+	  ports:
+	    - port: 80
+	      targetPort: 8080
+	      protocol: TCP
+	  type: ClusterIP
+	  selector:
+	    app: echoserver
+
+Create an ingress resource exposing an HTTP route with a fully-qualified domain name of echo.example.com:
+
+	apiVersion: networking.k8s.io/v1
+	kind: Ingress
+	metadata:
+	  name: echoserver
+	  namespace: my-project
+	spec:
+  	  ingressClassName: nginx
+  	  rules:
+  	  - host: echo.example.com
+	    http:
+	      paths:
+	      - backend:
+	          service:
+	            name: echoserver
+	            port:
+	              number: 80
+	        path: /
+	        pathType: Prefix
+
+Confirm all resources are up and ready:
+
+	oc get all,ingress -n my-project
+
+From the OpenShift web console select the run command icon to open a web terminal. Test access to the internal endpoint:
+
+	curl echo.example.com
+	
+Assuming this worked the next steps are to generate a TLS certificate and configure an endpoing for HTTPS. To this end Cert-Manager will need to be able to provision a TXT record in the public hosted zone that LetsEncrypt can externally validate.
+
+
+
+
 
 
 
