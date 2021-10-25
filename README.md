@@ -311,7 +311,23 @@ Create a route for the method ANY with a path name of /{proxy+}. After the route
 
 Create an integration for the route that was created. The integration target is of type private resource. Select ALB/NLB for the target service along with the ARN of the load balancer fronting the NGINX ingress controller. Select TCP 443 for the listener and enter echo.example.com in the secure server name field. Select the VPC Link that should have been created by now.
 
-Click on the URL for the API endpoint which should now display the contents of the echoserver.
+Click on the auto-generated URL for the API endpoint which should now display the contents of the echoserver.
+
+As a final (but optional) step a custom domain name is created for acessing the API endpoint with a more friendly URL (https://echo.example.com).
+
+Export the TLS wildcard certificate into a file in prepartion for uploading to AWS Certificate Manager:
+
+	oc extract secret/example-com-tls --to=/tmp
+
+Import the wildcart certificate into ACM.
+
+From API Gateway create a custom domain (echo.example.com) as a regional endpoint and select the ARN of the certificate that was created. Note down the regional API Gateway domain name that is auto-generated.
+
+From Route 53 add an A record alias for the custom domain name resolving to the regional API Gateway domain name.
+
+Use curl to invoke the URL to display the contents of the echoserver:
+
+	curl https://echo.example.com
 
 ***
 
