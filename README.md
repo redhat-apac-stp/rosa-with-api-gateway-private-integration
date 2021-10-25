@@ -4,7 +4,7 @@ This article describe how to setup ROSA and AWS API Gateway using private APIs. 
 
 A diagram of the solution architecture showing all of the major components and flows is presented.
 
-<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.jpeg" alt="ROSA with AWS API Gateway" width="970" height="660">
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.jpg" alt="ROSA with AWS API Gateway" width="970" height="660">
 
 ROSA can be deployed as either a public or private cluster and the instructions will work in either case. The diagram above depicts a private ROSA cluster deployed in STS mode as per the following set of instructions:
 
