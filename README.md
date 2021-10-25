@@ -148,7 +148,7 @@ Confirm all resources are up and ready:
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon to open a web terminal. Test access to the internal endpoint:
+From the OpenShift web console select the run command icon to open a web terminal. Test access to the private endpoint:
 
 	curl echo.example.com
 	
@@ -295,7 +295,7 @@ Confirm all resources are up and ready:
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon to open a web terminal. Test access to the internal endpoint:
+From the OpenShift web console select the run command icon to open a web terminal. Test access to the private endpoint:
 
 	curl -Lk echo.example.com
 
@@ -323,7 +323,7 @@ From API Gateway create a custom domain (e.g., echo.example.com) as a regional e
 
 Add an A record alias for the custom domain name resolving to the regional API Gateway domain name in Route 53.
 
-Use curl to invoke the URL to display the contents of the echoserver:
+Use curl to invoke the user-friendly URL.
 
 	curl https://echo.example.com
 
