@@ -1,30 +1,28 @@
-# ROSA with AWS API Gateway
+# ROSA with AWS API Gateway HTTP APIs
 
-This article describe how to setup ROSA and AWS API Gateway using private APIs. The solution relieas upon SSL/TLS certificates for enabling end-to-end HTTPS and uses a split-horizon DNS approach to enable a single registered domain name to be used for both internal and external endpoints so as to minimise the total number of domains and certificates needed.
-
-A diagram of the solution architecture showing all of the major components and flows is presented.
+This article describes the integration of ROSA with AWS API Gateway HTTP APIs. The solution leverages a split-horizon DNS approach using wildcard certificates for both private and public application endpoints (cluster API endpoints are not affected). The following diagram depicts the major components and interactions.
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.png" alt="ROSA with AWS API Gateway">
 
-ROSA can be deployed as either a public or private cluster and the instructions will work in either case. The diagram above depicts a private ROSA cluster deployed in STS mode as per the following set of instructions:
+ROSA can be deployed as either a public or private cluster and these instructions. The diagram above depicts a private ROSA cluster deployed in STS mode based on following these instructions:
 
 https://mobb.ninja/docs/rosa/sts/
 
-Post-installation of ROSA install the following set of operators from OperatorHub in the OpenShift web console:
+Post-installation the following set of operators from OperatorHub should be installed via the OpenShift web console:
 
 	NGINX Ingress Operator v0.4.0
 	Cert-Manager v1.5.4
 	Web Terminal v1.3.0
 
-All operators are installed in the openshift-operators namespace as per default.
+All operators should be installed in the openshift-operators namespace with their default settings.
 
-The next step require a registered a domain name that will be used for accessing both internal and external endpoints. The domain names used in these instructions are example.com (base domain) and \*.example.com (wilcard domain). Change these to a domain that is registered to you.
+The next step require a registered a domain that will be used for both private and public endpoints. The domain name used in these instructions is example.com (base domain) and \*.example.com (wilcard domain). Change these to a domain that is registered to you.
 
-Create a public hosted zone in Route 53 with your registered domain name and update your DNS registrar to resolve queries to the name servers that Route 53 has allocated. Note down the hosted zone ID for use later.
+Create a public hosted zone in Route 53 for the registered domain and update the name servers in your DNS registrar to point to the name servers that Route 53 has allocated. Note down the hosted zone ID for use later.
 
-Create a private hosted zone in Route 53 with the same domain name and associate it with the VPC hosting ROSA. An additional A record will be added later to this zone aliasing the NLB endpoint fronting the NGINX ingress controller which will be created next.
+Create a private hosted zone in Route 53 for the same domain and associate it with the ROSA VPC. An additional A record will be added later for aliasing the NLB endpoint that exposes the NGINX ingress controller.
 
-Create an NGINX ingress controller using the following custom resource in the openshift-operators namespace:
+Create an NGINX ingress controller in the openshift-operators namespace:
 
 	apiVersion: k8s.nginx.org/v1alpha1
 	kind: NginxIngressController
@@ -40,7 +38,7 @@ Create an NGINX ingress controller using the following custom resource in the op
 	  replicas: 1
 	  serviceType: NodePort
 
-Add the following annotations to the my-nginx-ingress-controller service:
+Add the following annotations to the service created for the my-nginx-ingress-controller:
 
 	annotations:
 	  service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
@@ -48,7 +46,7 @@ Add the following annotations to the my-nginx-ingress-controller service:
 	  service.beta.kubernetes.io/aws-load-balancer-internal: "true"
 	  service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
 
-Update the my-nginx-ingress-controller configuration so that it will trigger the creation of an NLB:
+Modify the configuration of the my-nginx-ingress-controller so that it will trigger the creation of a NLB:
 
 	apiVersion: k8s.nginx.org/v1alpha1
 	kind: NginxIngressController
