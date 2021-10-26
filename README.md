@@ -121,7 +121,7 @@ Apply the echoserver service manifest:
 	  selector:
 	    app: echoserver
 
-Create an ingress managed by NGINX that will route HTTP calls for echo.example.com to the echoserver service:
+Create an ingress managed by NGINX that will route HTTP request for echo.example.com to the echoserver service:
 
 	apiVersion: networking.k8s.io/v1
 	kind: Ingress
@@ -150,11 +150,15 @@ From the OpenShift web console select the run command icon on the top menu bar t
 
 	curl echo.example.com
 	
-Assuming this worked the next steps are to generate a wildcard TLS certificate and enable HTTPS routing on the ingress. 
+Assuming this worked the next steps are to generate a wildcard certificate and enable HTTPS routing on the ingress endpoint. 
 
-To obtain a TLS certificate for the wildcard domain Cert-Manager will need to be able to provision a TXT record in a public hosted zone that LetsEncrypt can externally validate. Cert-Manager will require privileges on Route 53 to perform this action. This will require leveraging the OIDC provider installed by ROSA to generate a signed token that will be exchanged for short-term security credentials by AWS Security Token Service for accessing a role that will be bound to the Cert-Manager service account.
+LetsEncrypt is a supported certificate authority for AWS API Gateway HTTP APIs as per:
 
-Create a policy named cert-manager-policy in IAM with the following set of permissions. Substitute with the public hosted zone ID created earlier. 
+https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
+
+Cert-manager will be used to acquire a wildcard certficate from LetsEncrypt. Privileges on Route 53 are required for the cert-manager controller to perform the DNS01 challenge operation required by LetsEncrypt.
+
+Create a IAM policy named cert-manager-policy with the following permissions. Substitute with the public hosted zone ID you created earlier. 
 
 	{
 	    "Version": "2012-10-17",
@@ -162,7 +166,7 @@ Create a policy named cert-manager-policy in IAM with the following set of permi
 		{
 		    "Effect": "Allow",
 		    "Action": "route53:GetChange",
-		    "Resource": "arn:aws:route53:::change/\*"
+		    "Resource": "arn:aws:route53:::change/*"
 		},
 		{
 		    "Effect": "Allow",
@@ -175,7 +179,7 @@ Create a policy named cert-manager-policy in IAM with the following set of permi
 	    ]
 	}
 
-Create a role named cert-manager-irsa in IAM that has the cert-manager-policy attached. This role also requires the following trust relationship:
+Create a IAM role named cert-manager-irsa and attach the cert-manager-policy. This role also requires a trust relationship to the ROSA OIDC provider:
 
 	{
 	  "Version": "2012-10-17",
