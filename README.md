@@ -66,11 +66,11 @@ Modify the configuration of the my-nginx-ingress-controller so that it will trig
 	    real-ip-header: "proxy_protocol"
 	    set-real-ip-from: "0.0.0.0/0"	  
 
-From the AWS web console modify the NLB that was created by enabling proxy protocol for both listeners (TCP:80 and TCP:443).
+From the AWS web console modify the NLB that was created by enabling proxy protocol attributes for both listeners (TCP:80 and TCP:443).
 
-Add an additional A record (\*.example.com) to the private hosted zone aliasing the NLB endpoint.
+Add an A record for the wildcard domain \*.example.com in the private hosted zone and configure it as an alias to the NLB.
 
-In the next steps the echoserver application is deployed. Create a namespace for hosting this application.
+Deploy the echoserver application in a new namespace which displays HTTP headers when invoked.
 
 	oc new-project my-project
 
@@ -79,7 +79,7 @@ Create a service account and associate it with the anyuid SCC policy (echoserver
 	oc create sa sa-with-anyuid -n my-project
 	oc adm policy add-scc-to-user anyuid -z sa-with-anyuid -n my-project
 
-Apply the application deployment:
+Apply the echoserver deployment manifest:
 
 	apiVersion: apps/v1
 	kind: Deployment
@@ -105,7 +105,7 @@ Apply the application deployment:
 	        ports:
 	        - containerPort: 8080
 
-Apply the application service:
+Apply the echoserver service manifest:
 
 	apiVersion: v1
 	kind: Service
@@ -121,7 +121,7 @@ Apply the application service:
 	  selector:
 	    app: echoserver
 
-Create an ingress resource exposing an HTTP route with a fully-qualified domain name of echo.example.com:
+Create an ingress managed by NGINX that will route HTTP calls for echo.example.com to the echoserver service:
 
 	apiVersion: networking.k8s.io/v1
 	kind: Ingress
@@ -146,11 +146,11 @@ Confirm all resources are up and ready:
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon to open a web terminal. Test access to the private endpoint:
+From the OpenShift web console select the run command icon on the top menu bar to open a web terminal (refresh your browser if you do no see the run command icon). Validate HTTP access is working:
 
 	curl echo.example.com
 	
-Assuming this worked the next steps are to generate a TLS certificate and configure an endpoing for HTTPS on the ingress controller. 
+Assuming this worked the next steps are to generate a wildcard TLS certificate and enable HTTPS routing on the ingress. 
 
 To obtain a TLS certificate for the wildcard domain Cert-Manager will need to be able to provision a TXT record in a public hosted zone that LetsEncrypt can externally validate. Cert-Manager will require privileges on Route 53 to perform this action. This will require leveraging the OIDC provider installed by ROSA to generate a signed token that will be exchanged for short-term security credentials by AWS Security Token Service for accessing a role that will be bound to the Cert-Manager service account.
 
