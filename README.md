@@ -154,7 +154,7 @@ The output should look something like this:
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-http.png">
 
-The client_address field contains the IP address of the NGINX ingress controller pod. The real client address has been forwarded via proxy protocol and is contained in the x-forwarded-for field and is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTP port 80 as expected.
+The client_address field contains the IP address of the NGINX ingress controller pod. The address of the user-agent calling the URL is in the x-forwarded-for field and in this case is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTP port 80 as expected.
 
 Assuming this worked the next steps are to generate a wildcard certificate and enable HTTPS routing on the ingress endpoint. 
 
@@ -313,37 +313,47 @@ The output should look something like this:
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-https.png">
 
-The client_address field contains the IP address of the NGINX ingress controller pod. The real client address has been forwarded via proxy protocol and is contained in the x-forwarded-for field and is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTPS port 443 as expected.
+The client_address field contains the IP address of the NGINX ingress controller pod. The address of the user-agent calling the URL is in the x-forwarded-for field and in this case is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTPS port 443 as expected.
 
-Assuming this worked the next steps are to create a private AWS API Gateway HTTP API integration to ROSA.
+The next steps are to create a private AWS API Gateway HTTP API integration to the application endpoint on ROSA.
 
-Create a VPC Link in API Gateway for HTTP APIs. Associate the VPC hosting ROSA along with all subnets but none of the security groups.
+Create a VPC Link in API Gateway for HTTP APIs. Associate this link with the ROSA VPC and select all of the subnets hosting the NLB fronting the NGINX ingress controller. Do not select any security group.
 
-Whilst the VPC Link is being created create the HTTP API endpoint. Omit details for the integration, route and stage as these will be configured later.
+Whilst the VPC Link is being provisioned, create a default HTTP API endpoint. Integration, route and stage will be configured separately.
 
-Create a route for the method ANY with a path name of /{proxy+}. After the route is created configure parameter mappings for all incoming requests as follows:
+Create a default route for the ANY method with a path name of "/{proxy+}". 
+
+Create a default integration target of private resource for the route and associate it with the NLB fronting the NGINX ingress controller on port 443. Under advanced settings configure the secure server name to echo.example.com. Select the provisioned VPC link.
+
+Under manage integration create a new parameter mapping that applies to all incoming requests and configure this with the following options:
 
 	header.Host	Overwrite	echo.example.com
 
-Create an integration for the route that was created. The integration target is of type private resource. Select ALB/NLB for the target service along with the ARN of the load balancer fronting the NGINX ingress controller. Select TCP 443 for the listener and enter echo.example.com in the secure server name field. Select the VPC Link that should have been created by now.
+Click on the auto-generated API endpoint URL provisioned by AWS API Gateway which will open a tab in your web browser.
 
-Click on the auto-generated URL for the API endpoint which should now display the contents of the echoserver.
+The output should look something like this:
 
-As a final (but optional) step a custom domain name can be created for acessing an API endpoint via a user-friendly URL (e.g., https://echo.example.com).
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-https.png">
 
-Export the secret containing the wildcard certificate into a file for uploading to AWS Certificate Manager via the certficate import function.
+The client_address field contains the IP address of the NGINX ingress controller pod. The address of the user-agent calling the URL is in the forwarded=for field and in this case is a public IP address. The x-forwarded-for field now contains the private IP address of the ENI of the VPC link created by AWS API Gateway in the ROSA VPC. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTPS port 443 as expected.
 
-	oc extract secret/example-com-tls --to=/tmp
+As a final (but optional) step a custom domain name can be used to acess the API endpoint via a user-friendly URL (e.g., https://echo.example.com).
 
-From API Gateway create a custom domain (e.g., echo.example.com) as a regional endpoint and select the ARN of the certificate that was imported. Note down the regional API Gateway domain name that is auto-generated.
+Export the wildcard certificate into a file in preparation for uploading to AWS Certificate Manager.
 
-Add an A record alias for the custom domain name resolving to the regional API Gateway domain name in Route 53.
+	oc extract secret/example-com-tls --to=/tmp --confirm
 
-Use curl to invoke the user-friendly URL.
+From ACM create a new certificate using the import option. Copy and paste the certificate, key and chain from the files that were generated.
 
-	curl https://echo.example.com
+From AWS API Gateway create a custom domain (e.g., echo.example.com) protected by the certificate that was imported into ACM. Next configure an API mapping for the custom domain with the following options:
 
-Note that if you wish to use a wildcard custom domain to cover all possible API endpoints, API Gateway requires the certificate covering the wildcard domain to be generated by ACM.
+	<API endpoint name>	$default	<leave path blank>
+
+From Route 53 add an A record alias in the public hosted zone for echo.example.com to the regional API Gateway domain name auto-generated by AWS API Gateway.
+
+Enter the URL https://echo.example.com in your web browser which should display the following:
+
+
 
 ***
 
