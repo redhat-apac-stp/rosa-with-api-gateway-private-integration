@@ -333,7 +333,7 @@ Click on the auto-generated API endpoint URL provisioned by AWS API Gateway whic
 
 The output should look something like this:
 
-<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-https.png">
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-apigateway.png">
 
 The client_address field contains the IP address of the NGINX ingress controller pod. The address of the user-agent calling the URL is in the forwarded=for field and in this case is a public IP address. The x-forwarded-for field now contains the private IP address of the ENI of the VPC link created by AWS API Gateway in the ROSA VPC. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTPS port 443 as expected.
 
@@ -353,7 +353,7 @@ From Route 53 add an A record alias in the public hosted zone for echo.example.c
 
 Enter the URL https://echo.example.com in your web browser which should display the following:
 
-
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-customdomain.png">
 
 ***
 
