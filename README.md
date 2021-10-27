@@ -146,7 +146,7 @@ Confirm all resources are up and ready:
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon on the top menu bar to open a web terminal (refresh your browser if you do no see the run command icon). Validate HTTP access is working:
+From the OpenShift web console select the run command icon on the top menu bar to open a web terminal (refresh your browser if you do no see the run command icon). Test HTTP access:
 
 	curl echo.example.com
 	
@@ -201,12 +201,12 @@ Create an IAM role named cert-manager-irsa and attach to it the cert-manager-pol
 
 Substitute with values for your AWS account ID and OIDC endpoint URL. Use the rosa describe cluster command to obtain the OIDC endpoint URL and remove the https:// protocol from the path.
 
-Add the following annotation to the the cert-manager service account:
+Add the following annotation to the the cert-manager service account (substitute with values for your AWS account ID):
 
 	annotations:
-	  eks.amazonaws.com/role-arn: arn:aws:iam::635859128837:role/cert-manager-irsa
+	  eks.amazonaws.com/role-arn: arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
 
-Switch cert-manager from using the private DNS servers associated with the VPC to a public DNS server by adding --dns01-recursive-nameservers to the list of arguments.
+Switch cert-manager from using the default private DNS servers associated with the ROSA VPC to a public DNS server (e.g., Google DNS).
 
 	oc edit csv/cert-manager.v1.5.4
 	
@@ -218,9 +218,9 @@ Switch cert-manager from using the private DNS servers associated with the VPC t
                 - --leader-election-namespace=kube-system
                 - --dns01-recursive-nameservers="8.8.8.8:53"
 
-Delete the cert-manager pod in the openshift-operators namespace so that it is recreated with these changes applied.
+Validate that these changes are reflected in the cert-manager pod (check for the presence of AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and dns01-recursive-nameservers).
 
-Create a ClusterIssuer resource in the openshift-operators namespace that points to a LetsEncrypt endpoint for the DNS01 challenge. Note that this should be a production endpoint as this uses a Certificate Authority from the list that is supported by API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html).
+Create a ClusterIssuer in the openshift-operators namespace that links to the LetsEncrypt provider endpoint for completing the DNS01 challenge. Note that this should be a production endpoint as certificates issued by a staging endpoint are not supported by AWS API Gateway. For a complete list of supported certificate issuing authorities that AWS API Gateway supports see here: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
 	apiVersion: cert-manager.io/v1
 	kind: ClusterIssuer
@@ -228,17 +228,17 @@ Create a ClusterIssuer resource in the openshift-operators namespace that points
 	  name: letsencrypt
 	spec:
 	  acme:
-	  solvers:
-	    - dns01:
-	      route53:
-	        hostedZoneID: <public hosted zone ID>
-	        region: <your AWS regions>
-	  server: 'https://acme-v02.api.letsencrypt.org/directory'
-	  privateKeySecretRef:
-	    name: letsencrypt
-	  email: <email address>
+	    solvers:
+	      - dns01:
+	        route53:
+	          hostedZoneID: <public hosted zone ID>
+	          region: <your AWS regions>
+	    server: 'https://acme-v02.api.letsencrypt.org/directory'
+	    privateKeySecretRef:
+	      name: letsencrypt
+	    email: <email address>
 			        
-Create a Certificate resource in the echoserver application namespace for the wildcard domain:
+Create a wildcard Certificate resource in the echoserver application namespace:
 
 	apiVersion: cert-manager.io/v1
 	kind: Certificate
@@ -256,17 +256,21 @@ Create a Certificate resource in the echoserver application namespace for the wi
 	  privateKey:
 	    rotationPolicy: Always
 
-Verify the creation of a TXT record in the public hosted zone in Route 53.
+Verify the creation of a TXT record in the Route 53 public hosted zone for the domain.
 
-Verify the certificate is ready:
+Verify the certificate is ready (this may take a few minutes and do be aware of LetsEncrypt rate limits for the production endpoint):
 
 	oc get certificates -n my-project
 	
-Verify the TLS secret is created:
+You can also validate all your certificates for a specific domain via the following URL:
+
+	https://crt.sh/?q=example.com
+	
+Verify the TLS secret is created in the application namespace:
 
 	oc get secret -n my-project
 
-Update the ingress resource to enable HTTPS using the TLS secret for the wildcard domain:
+Update the ingress endpoint to support HTTPS routing:
 
 	apiVersion: networking.k8s.io/v1
 	kind: Ingress
@@ -291,11 +295,11 @@ Update the ingress resource to enable HTTPS using the TLS secret for the wildcar
 	          path: /
 	          pathType: Prefix
 
-Confirm all resources are up and ready:
+Confirm all resources are up and that the ingress is listeneing on both ports 80 and 443:
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon to open a web terminal. Test access to the private endpoint:
+From the OpenShift web console select the run command icon to open a web terminal. Test HTTPS access:
 
 	curl -Lk echo.example.com
 
