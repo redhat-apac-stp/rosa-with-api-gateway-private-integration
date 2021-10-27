@@ -303,7 +303,7 @@ From the OpenShift web console select the run command icon to open a web termina
 
 	curl -Lk echo.example.com
 
-Assuming this worked the next steps are to create a private integration with API Gateway.
+Assuming this worked the next steps are to create a private HTTP API integration for AWS API Gateway to ROSA.
 
 Create a VPC Link in API Gateway for HTTP APIs. Associate the VPC hosting ROSA along with all subnets but none of the security groups.
 
