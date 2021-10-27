@@ -158,7 +158,7 @@ https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-support
 
 Cert-manager will be used to acquire a wildcard certficate from LetsEncrypt. Privileges on Route 53 are required for the cert-manager controller to perform the DNS01 challenge operation required by LetsEncrypt.
 
-Create a IAM policy named cert-manager-policy with the following permissions. Substitute with the public hosted zone ID you created earlier. 
+Create an IAM policy named cert-manager-policy with the following permissions. Substitute with the public hosted zone ID you created earlier. 
 
 	{
 	    "Version": "2012-10-17",
@@ -179,7 +179,7 @@ Create a IAM policy named cert-manager-policy with the following permissions. Su
 	    ]
 	}
 
-Create a IAM role named cert-manager-irsa and attach the cert-manager-policy. This role also requires a trust relationship to the ROSA OIDC provider:
+Create an IAM role named cert-manager-irsa and attach to it the cert-manager-policy. This role also requires a trust relationship with the ROSA OIDC provider:
 
 	{
 	  "Version": "2012-10-17",
@@ -187,7 +187,7 @@ Create a IAM role named cert-manager-irsa and attach the cert-manager-policy. Th
 	    {
 	      "Effect": "Allow",
 	      "Principal": {
-		"Federated": "arn:aws:iam::<AWS account ID>:<OIDC endpoint URL>"
+		"Federated": "arn:aws:iam::<AWS account ID>:oidc-provider/<OIDC endpoint URL>"
 	      },
 	      "Action": "sts:AssumeRoleWithWebIdentity",
 	      "Condition": {
@@ -199,16 +199,14 @@ Create a IAM role named cert-manager-irsa and attach the cert-manager-policy. Th
 	  ]
 	}
 
-Substitute account ID and OIDC endpoint URL accordingly (the latter can be obtained from Identity Providers under Access Management in IAM).
+Substitute with values for your AWS account ID and OIDC endpoint URL. Use the rosa describe cluster command to obtain the OIDC endpoint URL and remove the https:// protocol from the path.
 
 Add the following annotation to the the cert-manager service account:
 
 	annotations:
-	  eks.amazonaws.com/role-arn: arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
+	  eks.amazonaws.com/role-arn: arn:aws:iam::635859128837:role/cert-manager-irsa
 
-Delete the cert-manager pod and inspect the re-created pod to validate the existence of AWS environment variables and token.
-
-Switch cert-manager from using the default private DNS servers associated with the VPC to a public DNS server by adding dns01-recursive-nameservers to the list of arguments.
+Switch cert-manager from using the private DNS servers associated with the VPC to a public DNS server by adding --dns01-recursive-nameservers to the list of arguments.
 
 	oc edit csv/cert-manager.v1.5.4
 	
@@ -220,7 +218,7 @@ Switch cert-manager from using the default private DNS servers associated with t
                 - --leader-election-namespace=kube-system
                 - --dns01-recursive-nameservers="8.8.8.8:53"
 
-Note that this modification should only be made to the cert-manager specification section. Also note the use of well-known Google public DNS servers to prove there is no dependency on AWS for domain name resolution.
+Delete the cert-manager pod in the openshift-operators namespace so that it is recreated with these changes applied.
 
 Create a ClusterIssuer resource in the openshift-operators namespace that points to a LetsEncrypt endpoint for the DNS01 challenge. Note that this should be a production endpoint as this uses a Certificate Authority from the list that is supported by API Gateway (https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html).
 
