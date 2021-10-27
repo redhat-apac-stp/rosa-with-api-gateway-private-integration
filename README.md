@@ -146,10 +146,13 @@ Confirm all resources are up and ready:
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon on the top menu bar to open a web terminal (refresh your browser if you do no see the run command icon). Test HTTP access:
+From the OpenShift web console select the run command icon on the top menu bar to open a web terminal (refresh your browser if you do no see the run command icon) and test HTTP access:
 
-	curl echo.example.com
+	curl echo.example.com -w "\n"
 	
+The output should look something like this:
+
+
 Assuming this worked the next steps are to generate a wildcard certificate and enable HTTPS routing on the ingress endpoint. 
 
 LetsEncrypt is a supported certificate authority for AWS API Gateway HTTP APIs as per:
@@ -299,9 +302,11 @@ Confirm all resources are up and that the ingress is listeneing on both ports 80
 
 	oc get all,ingress -n my-project
 
-From the OpenShift web console select the run command icon to open a web terminal. Test HTTPS access:
+From the OpenShift web console select the run command icon to open a web terminal and test HTTPS access:
 
-	curl -Lk echo.example.com
+	curl -Lk echo.example.com -w "\n"
+	
+The output should look something like this:
 
 Assuming this worked the next steps are to create a private HTTP API integration for AWS API Gateway to ROSA.
 
