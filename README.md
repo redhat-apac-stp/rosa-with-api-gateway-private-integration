@@ -355,6 +355,8 @@ Enter the URL https://echo.example.com in your web browser which should display 
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-customdomain.png">
 
+All of the HTTP headers remains the same except for the name of the URL which is now uniform across all of the services involved in the communication flow.
+
 ***
 
 If you experience any errors or have questions please contact the author at jwilms@redhat.com
