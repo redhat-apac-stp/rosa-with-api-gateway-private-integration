@@ -2,7 +2,7 @@
 
 This article describes the integration of ROSA with AWS API Gateway HTTP APIs. The solution leverages a split-horizon DNS approach using wildcard certificates for both private and public application endpoints (cluster API endpoints are not affected). The following diagram depicts the major components and interactions.
 
-<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.png" alt="ROSA with AWS API Gateway">
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.png">
 
 ROSA can be deployed as either a public or private cluster and these instructions. The diagram above depicts a private ROSA cluster deployed in STS mode based on following these instructions:
 
@@ -152,6 +152,7 @@ From the OpenShift web console select the run command icon on the top menu bar t
 	
 The output should look something like this:
 
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-http.png">
 
 Assuming this worked the next steps are to generate a wildcard certificate and enable HTTPS routing on the ingress endpoint. 
 
@@ -307,6 +308,8 @@ From the OpenShift web console select the run command icon to open a web termina
 	curl -Lk echo.example.com -w "\n"
 	
 The output should look something like this:
+
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-http.png">
 
 Assuming this worked the next steps are to create a private HTTP API integration for AWS API Gateway to ROSA.
 
