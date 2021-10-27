@@ -70,7 +70,7 @@ Modify the configuration of the my-nginx-ingress-controller so that it will trig
 
 From the AWS web console modify the NLB that was created by enabling proxy protocol attributes for both listeners (TCP:80 and TCP:443).
 
-Add an A record for the wildcard domain \*.example.com in the private hosted zone and configure it as an alias to the NLB.
+Add an A record for the domain echo.example.com in the private hosted zone and configure it as an alias to the NLB.
 
 Deploy the echoserver application in a new namespace which displays HTTP headers when invoked.
 
