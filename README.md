@@ -357,7 +357,7 @@ Enter the URL https://echo.example.com in your web browser which should display 
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-customdomain.png">
 
-All of the HTTP headers remains the same except for the name of the URL which is now uniform across all private and public endpoints thus simplifying the communication flow and troubleshooting. 
+All of the HTTP headers remains the same except for the name of the URL which is now uniform across all private and public endpoints thus simplifying the communication flow and tracing. 
 
 To enable different groups of users to access a shared backend service via a shared API, this can be accomplished by creating another custom domain name specific to the user group with an A record alias added to Route 53 as described. When the service is invoked the custom domain name will show up in the HTTP request header "forwarded=host=" injected by the AWS API Gateway; thus enabling the shared backend service to filter the traffic by user group.
 
