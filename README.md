@@ -154,6 +154,8 @@ The output should look something like this:
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-http.png">
 
+The client_address field contains the IP address of the NGINX ingress controller pod. The real client address has been forwarded via proxy protocol and is contained in the x-forwarded-for field and is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTP port 80 as expected.
+
 Assuming this worked the next steps are to generate a wildcard certificate and enable HTTPS routing on the ingress endpoint. 
 
 LetsEncrypt is a supported certificate authority for AWS API Gateway HTTP APIs as per:
@@ -309,9 +311,11 @@ From the OpenShift web console select the run command icon to open a web termina
 	
 The output should look something like this:
 
-<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-http.png">
+<img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-https.png">
 
-Assuming this worked the next steps are to create a private HTTP API integration for AWS API Gateway to ROSA.
+The client_address field contains the IP address of the NGINX ingress controller pod. The real client address has been forwarded via proxy protocol and is contained in the x-forwarded-for field and is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTPS port 443 as expected.
+
+Assuming this worked the next steps are to create a private AWS API Gateway HTTP API integration to ROSA.
 
 Create a VPC Link in API Gateway for HTTP APIs. Associate the VPC hosting ROSA along with all subnets but none of the security groups.
 
