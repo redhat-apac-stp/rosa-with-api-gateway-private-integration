@@ -1,10 +1,12 @@
 # ROSA with AWS API Gateway HTTP APIs
 
-This article describes the integration of ROSA with AWS API Gateway HTTP APIs. The solution leverages a split-horizon DNS approach using wildcard certificates for both private and public application endpoints (cluster API endpoints are not affected). The following diagram depicts the major components and interactions.
+This article describes how to integrate ROSA with AWS API Gateway HTTP APIs that are exposed to multiple end users. It thus becomes imperative to ensure that a shared backend service is able to distinguish between different client sources for the purpose of correct execution and auditing.
+
+Technically this requires implementing a number of supporting technology patterns such as transparent proxying, wildcard certificates and split-horizon DNS to simplify end-to-end communications using a common custom domain name. The following diagram depicts the major components and their interaction.
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/ROSA%20with%20AWS%20API%20Gateway.png">
 
-ROSA can be deployed as either a public or private cluster and these instructions. The diagram above depicts a private ROSA cluster deployed in STS mode based on following these instructions:
+ROSA can be deployed as either a public or private cluster. The diagram above depicts a private ROSA cluster deployed in STS mode based on following these instructions:
 
 https://mobb.ninja/docs/rosa/sts/
 
