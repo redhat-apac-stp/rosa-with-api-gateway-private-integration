@@ -10,7 +10,7 @@ ROSA can be deployed as either a public or private cluster. The diagram above de
 
 https://mobb.ninja/docs/rosa/sts/
 
-Post-installation of ROSA, install the following set of operators from OperatorHub via the OpenShift web console with their default settings:
+Post-installation of ROSA, install the following operators from OperatorHub via the OpenShift web console with their default settings:
 
 	NGINX Ingress Operator v0.4.0
 	Web Terminal v1.3.0
