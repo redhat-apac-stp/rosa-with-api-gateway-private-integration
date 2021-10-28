@@ -214,19 +214,17 @@ Add the following annotation to the the cert-manager service account (substitute
 	annotations:
 	  eks.amazonaws.com/role-arn: arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
 
-Switch cert-manager from using the default private DNS servers associated with the ROSA VPC to a public DNS server (e.g., Google DNS).
+Switch cert-manager to use a public DNS server (e.g., Google DNS) for name resolution. Make this change at the operator level which will propogate this to the deployment and pod.
 
 	oc edit csv/cert-manager.v1.5.4
 	
-	    spec:
-              containers:
               - args:
                 - --v=2
                 - --cluster-resource-namespace=$(POD_NAMESPACE)
                 - --leader-election-namespace=kube-system
                 - --dns01-recursive-nameservers="8.8.8.8:53"
 
-Validate that these changes are reflected in the cert-manager pod (check for the presence of AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and dns01-recursive-nameservers).
+Validate that all changes are reflected in the cert-manager pod (check for the presence of AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and dns01-recursive-nameservers).
 
 Create a ClusterIssuer in the openshift-operators namespace that links to the LetsEncrypt provider endpoint for completing the DNS01 challenge. Note that this should be a production endpoint as certificates issued by a staging endpoint are not supported by AWS API Gateway. For a complete list of supported certificate issuing authorities that AWS API Gateway supports see here: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
 
