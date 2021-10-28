@@ -214,7 +214,7 @@ Add the following annotation to the the cert-manager service account (substitute
 	annotations:
 	  eks.amazonaws.com/role-arn: arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
 
-Switch cert-manager to use a public DNS server (e.g., Google DNS) for name resolution. Make this change at the operator level which will propogate this to the deployment and pod.
+Switch cert-manager to use a public DNS server (e.g., Google DNS) for all name resolution. Make this change at the operator level which will propogate this to the deployment and pod.
 
 	oc edit csv/cert-manager.v1.5.4
 	
