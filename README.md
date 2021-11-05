@@ -210,7 +210,8 @@ Install cert-manager using Helm and configure it to use a public DNS server (e.g
 
 	oc new-project cert-manager
 	helm repo add jetstack https://charts.jetstack.io
-	helm upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --version v1.5.4 --set installCRDs=true --set 'extraArgs={--dns01-recursive-nameservers="8.8.8.8:53"}'
+	helm repo update
+	helm install cert-manager jetstack/cert-manager --namespace cert-manager --version v1.6.1 --set installCRDs=true --set 'extraArgs={--dns01-recursive-nameservers="8.8.8.8:53,1.1.1.1:53"}'
 
 Add the following annotation to the the cert-manager service account (substitute with values for your AWS account ID) to enable IAM Roles for Service Accounts:
 
