@@ -206,12 +206,11 @@ Create an IAM role named cert-manager-irsa and attach to it the cert-manager-pol
 
 Substitute with values for your AWS account ID and OIDC endpoint URL. Use the rosa describe cluster command to obtain the OIDC endpoint URL and remove the https:// protocol from the path.
 
-Install cert-manager using Helm and configure it to use a public DNS server (e.g., Google DNS) for name resolution.
+Use Helm to install the latest version of cert-manager and configure it to use public DNS servers for name resolution and IAM Roles for Serivce Accounts.
 
-	oc new-project cert-manager
 	helm repo add jetstack https://charts.jetstack.io
 	helm repo update
-	helm install cert-manager jetstack/cert-manager --namespace cert-manager --version v1.6.1 --set installCRDs=true --set 'extraArgs={--dns01-recursive-nameservers-only,--dns01-recursive-nameservers=8.8.8.8:53\,1.1.1.1:53}' --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
+	helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true --set 'extraArgs={--dns01-recursive-nameservers-only,--dns01-recursive-nameservers=8.8.8.8:53\,1.1.1.1:53}' --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
 
 Validate that all changes are reflected in the cert-manager pod (check for AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and dns01-recursive-nameservers).
 
