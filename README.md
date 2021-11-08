@@ -212,8 +212,6 @@ Use Helm to install the latest version of cert-manager and configure it to use p
 	helm repo update
 	helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true --set 'extraArgs={--dns01-recursive-nameservers-only,--dns01-recursive-nameservers=8.8.8.8:53\,1.1.1.1:53}' --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
 	
-	oc annotate namespace cert-manager openshift.io/node-selector=""
-
 Validate that all changes are reflected in the cert-manager pod (check for AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and dns01-recursive-nameservers).
 
 Create a ClusterIssuer in the openshift-operators namespace that links to the LetsEncrypt provider endpoint for completing the DNS01 challenge. Note that this should be a production endpoint as certificates issued by a staging endpoint are not supported by AWS API Gateway. For a complete list of supported certificate issuing authorities that AWS API Gateway supports see here: https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-supported-certificate-authorities-for-http-endpoints.html
