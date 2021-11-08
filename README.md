@@ -211,6 +211,8 @@ Use Helm to install the latest version of cert-manager and configure it to use p
 	helm repo add jetstack https://charts.jetstack.io
 	helm repo update
 	helm install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set installCRDs=true --set 'extraArgs={--dns01-recursive-nameservers-only,--dns01-recursive-nameservers=8.8.8.8:53\,1.1.1.1:53}' --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::<AWS account ID>:role/cert-manager-irsa
+	
+	oc annotate namespace cert-manager openshift.io/node-selector=""
 
 Validate that all changes are reflected in the cert-manager pod (check for AWS_ROLE_ARN, AWS_WEB_IDENTITY_TOKEN_FILE, and dns01-recursive-nameservers).
 
