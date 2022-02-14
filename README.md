@@ -98,7 +98,7 @@ Apply the echoserver deployment manifest:
 	      serviceAccount: sa-with-anyuid
 	      serviceAccountName: sa-with-anyuid
 	      containers:
-	      - image: gcr.io/google_containers/echoserver:1.4
+	      - image: gcr.io/google_containers/echoserver:1.10
 	        imagePullPolicy: Always
 	        name: echoserver
 	        ports:
@@ -180,7 +180,12 @@ Create an IAM policy named cert-manager-policy with the following permissions. S
 			"route53:ListResourceRecordSets"
 		    ],
 		    "Resource": "arn:aws:route53:::hostedzone/<public hosted zone ID>"
-		}
+		},
+		{
+			"Effect": "Allow",
+            		"Action": "route53:ListHostedZonesByName",
+            		"Resource": "*"
+        	}
 	    ]
 	}
 
@@ -197,7 +202,7 @@ Create an IAM role named cert-manager-irsa and attach to it the cert-manager-pol
 	      "Action": "sts:AssumeRoleWithWebIdentity",
 	      "Condition": {
 		"StringEquals": {
-		  "<OIDC endpoint URL>:sub": "system:serviceaccount:openshift-operators:cert-manager"
+		  "<OIDC endpoint URL>:sub": "system:serviceaccount:cert-manager:cert-manager"
 		}
 	      }
 	    }
@@ -220,13 +225,17 @@ Create a ClusterIssuer in the openshift-operators namespace that links to the Le
 	kind: ClusterIssuer
 	metadata:
 	  name: letsencrypt
+	  namespace: cert-manager
 	spec:
 	  acme:
 	    solvers:
-	      - dns01:
-	        route53:
-	          hostedZoneID: <public hosted zone ID>
-	          region: <your AWS regions>
+	      - selector:
+	          dnsZones:
+		    - "<zone name1>"
+		    - "<zone name2>"
+	        dns01:
+	          route53:
+	            region: <your AWS regions>
 	    server: 'https://acme-v02.api.letsencrypt.org/directory'
 	    privateKeySecretRef:
 	      name: letsencrypt
@@ -300,6 +309,10 @@ From the OpenShift web console select the run command icon to open a web termina
 The output should look something like this:
 
 <img src="https://github.com/redhat-apac-stp/rosa-with-aws-api-gateway/blob/main/echoserver-https.png">
+
+Inspect the certificate chain:
+
+	openssl s_client -showcerts -connect echo.example.com:443
 
 The client_address field contains the IP address of the NGINX ingress controller pod. The address of the user-agent calling the URL is in the x-forwarded-for field and in this case is the IP address of the node running the web terminal pod. Note that the x-forwarded-port and x-forwarded-proto confirm that this connection is over HTTPS port 443 as expected.
 
